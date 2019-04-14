@@ -47,7 +47,7 @@ func handleForm(rw http.ResponseWriter, req *http.Request) {
 	} else {
 		rw.Header().Add("Location", "failure")
 	}
-	rw.WriteHeader(http.StatusTemporaryRedirect)
+	rw.WriteHeader(http.StatusSeeOther)
 }
 
 func showForm(rw http.ResponseWriter, req *http.Request) {
