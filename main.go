@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
+	"github.com/jamiealquiza/envy"
 	"html/template"
 	"log"
 	"math/rand"
@@ -105,6 +106,7 @@ func main() {
 	smtpPassword = flag.String("smtp-pass", "", "password to supply to the SMTP server")
 	csrfKey = flag.String("crsf-key", "", "CRSF key to use")
 	port = flag.Int("port", 8080, "port to listen on for connections")
+	envy.Parse("CONTACT")
 	flag.Parse()
 
 	checkFlag(*fromAddress, "from address")
