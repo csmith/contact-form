@@ -5,6 +5,9 @@
 Provides a simple, tiny webservice that serves a contact form and sends responses
 via e-mail.
 
+image:example-form.png[Example contact form] ->
+image:example-email.png[Example email message]
+
 == Usage
 
 The simplest way to use this is via docker:
@@ -47,6 +50,11 @@ can use the templating syntax described there.
 
 The form must contain the `{{ .csrfField }}` template field, which will automatically insert the CSRF token for
 the request.
+
+== Credits
+
+Developed by https://chameth.com[Chris Smith]; CSS heavily based on the login form in
+ https://github.com/greboid/ig[ig] by https://greboid.com[Greg Holmes].
 
 == Licence
 
