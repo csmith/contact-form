@@ -68,9 +68,9 @@
         <form action="submit" method="post">
             <h1>Contact me</h1>
             {{ .csrfField }}
-            <input type="text" name="name" placeholder="Your name">
-            <input type="email" name="from" placeholder="Your e-mail address">
-            <textarea name="message" placeholder="Your message"></textarea>
+            <input type="text" name="name" placeholder="Your name" required>
+            <input type="email" name="from" placeholder="Your e-mail address" required>
+            <textarea name="message" placeholder="Your message" required></textarea>
             <button>SEND</button>
         </form>
     </div>
