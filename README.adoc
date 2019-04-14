@@ -1,0 +1,53 @@
+= Go contact form
+
+== About
+
+Provides a simple, tiny webservice that serves a contact form and sends responses
+via e-mail.
+
+== Usage
+
+The simplest way to use this is via docker:
+
+    docker run -d csmith/contact-form -from form@server.com -to me@email.com .....
+
+You should place this service behind an TLS-terminating proxy, and ensure it
+is requested over a secure connection.
+
+== Command line flags
+
+----
+  -crsf-key string
+        CRSF key to use
+  -from string
+        address to send e-mail from
+  -port int
+        port to listen on for connections (default 8080)
+  -smtp-host string
+        SMTP server to connect to
+  -smtp-pass string
+        password to supply to the SMTP server
+  -smtp-port int
+        port to use when connecting to the SMTP server (default 25)
+  -smtp-user string
+        username to supply to the SMTP server
+  -subject string
+        e-mail subject (default "Contact form submission")
+  -to string
+        address to send e-mail to
+----
+
+_from_, _to_, _smtp-host_, _smtp-user_, and _smtp-pass_ are required; other options have vaguely sensible fallbacks.
+
+== Templates
+
+The form itself is loaded from `form.html` in the working directory; success and failure pages from `success.html`
+and `failure.html` respectively. Each is loaded as a https://golang.org/pkg/html/template/[go html.template] and
+can use the templating syntax described there.
+
+The form must contain the `{{ .csrfField }}` template field, which will automatically insert the CSRF token for
+the request.
+
+== Licence
+
+This software is licensed under the MIT licence. See the LICENCE.adoc file for the full text.
