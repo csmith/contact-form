@@ -43,7 +43,12 @@ func handleForm(rw http.ResponseWriter, req *http.Request) {
 			body += fmt.Sprintf("%s:\r\n%s\r\n\r\n", strings.ToUpper(k), v[0])
 		}
 	}
-	if sendMail(req.Form.Get("from"), body) {
+
+	replyTo := req.Form.Get("from")
+	replyTo = strings.ReplaceAll(replyTo, "\n", "")
+	replyTo = strings.ReplaceAll(replyTo, "\r", "")
+
+	if sendMail(replyTo, body) {
 		rw.Header().Add("Location", "success")
 	} else {
 		rw.Header().Add("Location", "failure")
