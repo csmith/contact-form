@@ -56,6 +56,9 @@ and `failure.html` respectively. Each is loaded as a https://golang.org/pkg/html
 can use the templating syntax described there. The form must contain the `{{ .csrfField }}` template field, which
 will automatically insert the CSRF token for the request.
 
+Any query parameters passed to the form will be accessible through the `{{ .params }}` template field. The
+default template will include all parameters as hidden fields in the form.
+
 If the form contains a field named `from`, it will be used in the `Reply-To` header. Otherwise, no
 special processing is applied to any field; they are all simply written out to the message body.
 No server-side validation is performed.

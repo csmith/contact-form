@@ -6,7 +6,6 @@
     <style type="text/css">
         .page {
             width: 640px;
-            padding: 8% 0 0;
             margin: auto;
         }
 
@@ -15,10 +14,9 @@
             z-index: 1;
             background: #FFFFFF;
             max-width: 640px;
-            margin: 0 auto 100px;
+            margin: 0 auto;
             padding: 25px 45px 35px 45px;
             text-align: center;
-            box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2), 0 5px 5px 0 rgba(0, 0, 0, 0.24);
         }
 
         .form input, .form textarea {
@@ -53,21 +51,16 @@
         .form button:hover, .form button:active, .form button:focus {
             background: #43A047;
         }
-
-        h1 {
-            font-family: sans-serif;
-            font-variant: all-small-caps;
-            font-size: 1.4em;
-            margin: 0 0 0.9em 0;
-        }
     </style>
 </head>
 <body>
 <div class="page">
     <div class="form">
         <form action="submit" method="post">
-            <h1>Contact me</h1>
             {{ .csrfField }}
+            {{-  range $k, $v := .params }}
+            <input type="hidden" name="{{ $k | html }}" value="{{ $v | html }}">
+            {{- end }}
             <input type="text" name="name" placeholder="Your name" required>
             <input type="email" name="from" placeholder="Your e-mail address" required>
             <textarea name="message" placeholder="Your message" required></textarea>

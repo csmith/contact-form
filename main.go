@@ -57,8 +57,17 @@ func handleForm(rw http.ResponseWriter, req *http.Request) {
 }
 
 func showForm(rw http.ResponseWriter, req *http.Request) {
+	params := make(map[string]string)
+
+	for k, vs := range req.URL.Query() {
+		if len(vs) == 1 {
+			params[k] = vs[0]
+		}
+	}
+
 	_ = formTemplate.ExecuteTemplate(rw, "form.html", map[string]interface{}{
 		csrf.TemplateTag: csrf.TemplateField(req),
+		"params":         params,
 	})
 }
 
