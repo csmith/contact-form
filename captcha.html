@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8"/>
+    <title>Contact me</title>
+    <style type="text/css">
+        p {
+            font-family: sans-serif;
+        }
+
+        .page {
+            width: 640px;
+            margin: auto;
+        }
+
+        .form {
+            position: relative;
+            z-index: 1;
+            background: #FFFFFF;
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 25px 45px 35px 45px;
+            text-align: center;
+        }
+
+        .form input {
+            outline: 0;
+            background: #f2f2f2;
+            width: 100%;
+            border: 0;
+            margin: 0 0 15px;
+            padding: 15px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        .form button {
+            text-transform: uppercase;
+            outline: 0;
+            background: #4CAF50;
+            width: 100%;
+            border: 0;
+            padding: 15px;
+            color: #FFFFFF;
+            font-size: 14px;
+            transition: all 0.3 ease;
+            cursor: pointer;
+        }
+
+        .form button:hover, .form button:active, .form button:focus {
+            background: #43A047;
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="form">
+        <form action="solve" method="post">
+            {{ .csrfField }}
+            <p>
+                As a protection against automated spam, please type in the
+                numbers in the image below.
+            </p>
+            <p>
+                Alternatively, you can listen  to an <a href="captcha.wav">audio version</a>.
+            </p>
+
+            <p>
+                If you are unable to read the image, <a href="captcha">reload the page</a>
+                to generate a new one.
+            </p>
+
+            <img src="captcha.png" alt="Captcha">
+
+            <input type="text" minlength="6" maxlength="6" name="captcha" placeholder="Captcha value" pattern="[0-9]*" inputmode="numeric" required>
+
+            <button>Submit</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

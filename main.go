@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 	"github.com/jamiealquiza/envy"
 	"html/template"
 	"log"
@@ -17,12 +18,22 @@ import (
 
 const (
 	csrfFieldName = "csrf.Token"
+	sessionName   = "contactform"
+	bodyKey       = "body"
+	replyToKey    = "replyTo"
+	captchaKey    = "captchaId"
 )
 
 var (
-	fromAddress, toAddress, subject, smtpServer, smtpUsername, smtpPassword, csrfKey *string
-	smtpPort, port                                                                   *int
-	formTemplate, successTemplate, failureTemplate                                   *template.Template
+	fromAddress, toAddress, subject        *string
+	smtpServer, smtpUsername, smtpPassword *string
+	csrfKey, sessionKey                    *string
+	smtpPort, port                         *int
+	enableCaptcha                          *bool
+	store                                  *sessions.CookieStore
+	formTemplate                           *template.Template
+	captchaTemplate                        *template.Template
+	successTemplate, failureTemplate       *template.Template
 )
 
 func sendMail(replyTo, message string) bool {
@@ -36,7 +47,7 @@ func sendMail(replyTo, message string) bool {
 	return true
 }
 
-func handleForm(rw http.ResponseWriter, req *http.Request) {
+func handleSubmit(rw http.ResponseWriter, req *http.Request) {
 	body := ""
 	for k, v := range req.Form {
 		if k != csrfFieldName {
@@ -48,12 +59,15 @@ func handleForm(rw http.ResponseWriter, req *http.Request) {
 	replyTo = strings.ReplaceAll(replyTo, "\n", "")
 	replyTo = strings.ReplaceAll(replyTo, "\r", "")
 
-	if sendMail(replyTo, body) {
+	if *enableCaptcha {
+		beginCaptcha(rw, req, body, replyTo)
+	} else if sendMail(replyTo, body) {
 		rw.Header().Add("Location", "success")
+		rw.WriteHeader(http.StatusSeeOther)
 	} else {
 		rw.Header().Add("Location", "failure")
+		rw.WriteHeader(http.StatusSeeOther)
 	}
-	rw.WriteHeader(http.StatusSeeOther)
 }
 
 func showForm(rw http.ResponseWriter, req *http.Request) {
@@ -119,7 +133,10 @@ func main() {
 	smtpUsername = flag.String("smtp-user", "", "username to supply to the SMTP server")
 	smtpPassword = flag.String("smtp-pass", "", "password to supply to the SMTP server")
 	csrfKey = flag.String("crsf-key", "", "CRSF key to use")
+	sessionKey = flag.String("session-key", "", "Session key to use (for captcha support)")
+	enableCaptcha = flag.Bool("enable-captcha", false, "Whether to require captchas to be completed")
 	port = flag.Int("port", 8080, "port to listen on for connections")
+
 	envy.Parse("CONTACT")
 	flag.Parse()
 
@@ -134,7 +151,21 @@ func main() {
 		csrfKey = &newKey
 	}
 
+	if len(*sessionKey) != 32 {
+		newKey := randomKey()
+		sessionKey = &newKey
+	}
+
+	store = sessions.NewCookieStore([]byte(*sessionKey))
+	store.Options =  &sessions.Options{
+		MaxAge:   0,
+		Secure:   false, //true,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	}
+
 	formTemplate = loadTemplate("form.html")
+	captchaTemplate = loadTemplate("captcha.html")
 	successTemplate = loadTemplate("success.html")
 	failureTemplate = loadTemplate("failure.html")
 
@@ -142,9 +173,16 @@ func main() {
 	r.HandleFunc("/", showForm).Methods("GET")
 	r.HandleFunc("/success", showSuccess).Methods("GET")
 	r.HandleFunc("/failure", showFailure).Methods("GET")
-	r.HandleFunc("/submit", handleForm).Methods("POST")
+	r.HandleFunc("/submit", handleSubmit).Methods("POST")
 
-	CSRF := csrf.Protect([]byte(*csrfKey), csrf.FieldName(csrfFieldName))
+	// Captcha endpoints
+	r.HandleFunc("/captcha", showCaptcha).Methods("GET")
+	r.HandleFunc("/captcha.png", writeCaptchaImage).Methods("GET")
+	r.HandleFunc("/captcha.wav", writeCaptchaAudio).Methods("GET")
+	r.HandleFunc("/solve", handleSolve).Methods("POST")
+
+	// If developing locally, you'll need to pass csrf.Secure(false) as an argument below.
+	CSRF := csrf.Protect([]byte(*csrfKey), csrf.FieldName(csrfFieldName), csrf.Secure(false))
 	err := http.ListenAndServe(fmt.Sprintf(":%d", *port), CSRF(r))
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Unable to listen on port %d: %s\n", *port, err.Error())

@@ -27,10 +27,14 @@ other options have vaguely sensible fallbacks.
 ----
   -crsf-key string
     	CRSF key to use [CONTACT_CRSF_KEY]
+  -enable-captcha
+        Whether to require captchas to be completed [CONTACT_ENABLE_CAPTCHA]
   -from string
     	address to send e-mail from [CONTACT_FROM]
   -port int
     	port to listen on for connections [CONTACT_PORT] (default 8080)
+  -session-key string
+        Session key to use (for captcha support) [CONTACT_SESSION_KEY]
   -smtp-host string
     	SMTP server to connect to [CONTACT_SMTP_HOST]
   -smtp-pass string
@@ -52,8 +56,9 @@ https://aws.amazon.com/ses/[AWS SES], both of which you can access over SMTP.
 == Templates
 
 The form itself is loaded from `form.html` in the working directory; success and failure pages from `success.html`
-and `failure.html` respectively. Each is loaded as a https://golang.org/pkg/html/template/[go html.template] and
-can use the templating syntax described there. The form must contain the `{{ .csrfField }}` template field, which
+and `failure.html` respectively. If captcha support is enabled, the captcha page is loaded from `captcha.html`.
+Each page is loaded as a https://golang.org/pkg/html/template/[go html.template] and
+can use the templating syntax described there. Forms must contain the `{{ .csrfField }}` template field, which
 will automatically insert the CSRF token for the request.
 
 Any query parameters passed to the form will be accessible through the `{{ .params }}` template field. The
@@ -70,6 +75,9 @@ replace this with a volume to supply custom templates.
 
 Developed by https://chameth.com[Chris Smith]; CSS heavily based on the login form in
  https://github.com/greboid/ig[ig] by https://greboid.com[Greg Holmes].
+
+Captchas are implemented using the https://github.com/dchest/captcha[dchest/captcha]
+library, and most functionality utilises libraries from the https://www.gorillatoolkit.org/[Gorilla web toolkit].
 
 == Licence
 
