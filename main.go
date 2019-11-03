@@ -159,7 +159,7 @@ func main() {
 	store = sessions.NewCookieStore([]byte(*sessionKey))
 	store.Options =  &sessions.Options{
 		MaxAge:   0,
-		Secure:   false, //true,
+		Secure:   true, // Set to false for local development
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 	}
@@ -182,7 +182,7 @@ func main() {
 	r.HandleFunc("/solve", handleSolve).Methods("POST")
 
 	// If developing locally, you'll need to pass csrf.Secure(false) as an argument below.
-	CSRF := csrf.Protect([]byte(*csrfKey), csrf.FieldName(csrfFieldName), csrf.Secure(false))
+	CSRF := csrf.Protect([]byte(*csrfKey), csrf.FieldName(csrfFieldName))
 	err := http.ListenAndServe(fmt.Sprintf(":%d", *port), CSRF(r))
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Unable to listen on port %d: %s\n", *port, err.Error())
