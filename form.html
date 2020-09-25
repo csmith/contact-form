@@ -4,6 +4,35 @@
     <meta http-equiv="Content-Type" content="text/html" charset="UTF-8"/>
     <title>Contact me</title>
     <style type="text/css">
+        :root {
+            --page-background: #fff;
+            --page-text: #000;
+            --input-background: #f2f2f2;
+            --input-text: var(--page-text);
+            --button-background: #4CAF50;
+            --button-background-active: #43A047;
+            --button-text: #fff;
+            --link-text: #273778;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --page-background: #333333;
+                --page-text: #cccccc;
+                --input-background: #444444;
+                --input-text: var(--page-text);
+                --button-background: #357f38;
+                --button-background-active: #2b6a2e;
+                --button-text: #fff;
+                --link-text: #99a1c1;
+            }
+        }
+
+        body {
+            background-color: var(--page-background);
+            color: var(--page-text);
+        }
+
         .page {
             width: 640px;
             margin: auto;
@@ -12,7 +41,8 @@
         .form {
             position: relative;
             z-index: 1;
-            background: #FFFFFF;
+            background-color: var(--page-background);
+            color: var(--page-text);
             max-width: 640px;
             margin: 0 auto;
             padding: 25px 45px 35px 45px;
@@ -21,7 +51,8 @@
 
         .form input, .form textarea {
             outline: 0;
-            background: #f2f2f2;
+            background-color: var(--input-background);
+            color: var(--input-text);
             width: 100%;
             border: 0;
             margin: 0 0 15px;
@@ -30,26 +61,26 @@
             font-size: 14px;
         }
 
-        .form textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
         .form button {
             text-transform: uppercase;
             outline: 0;
-            background: #4CAF50;
+            background-color: var(--button-background);
+            color: var(--button-text);
             width: 100%;
             border: 0;
             padding: 15px;
-            color: #FFFFFF;
             font-size: 14px;
-            transition: all 0.3 ease;
+            transition: all 0.3s ease;
             cursor: pointer;
         }
 
         .form button:hover, .form button:active, .form button:focus {
-            background: #43A047;
+            background-color: var(--button-background-active);
+        }
+
+        .form textarea {
+            resize: vertical;
+            min-height: 100px;
         }
     </style>
 </head>

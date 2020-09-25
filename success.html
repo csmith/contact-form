@@ -4,6 +4,23 @@
     <meta http-equiv="Content-Type" content="text/html" charset="UTF-8"/>
     <title>Contact me</title>
     <style type="text/css">
+        :root {
+            --page-background: #fff;
+            --page-text: #000;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --page-background: #333333;
+                --page-text: #cccccc;
+            }
+        }
+
+        body {
+            background-color: var(--page-background);
+            color: var(--page-text);
+        }
+
         .page {
             width: 480px;
             padding: 8% 0 0;
@@ -13,7 +30,6 @@
         .form {
             position: relative;
             z-index: 1;
-            background: #FFFFFF;
             max-width: 360px;
             margin: 0 auto 100px;
             padding: 45px;
