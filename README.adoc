@@ -28,7 +28,9 @@ other options have vaguely sensible fallbacks.
   -crsf-key string
     	CRSF key to use [CONTACT_CRSF_KEY]
   -enable-captcha
-        Whether to require captchas to be completed [CONTACT_ENABLE_CAPTCHA]
+    	Whether to require captchas to be completed [CONTACT_ENABLE_CAPTCHA]
+  -enable-health-check
+    	Whether to expose health checks at /_health [CONTACT_ENABLE_HEALTH_CHECK]
   -from string
     	address to send e-mail from [CONTACT_FROM]
   -port int
@@ -71,13 +73,26 @@ No server-side validation is performed.
 When running from the docker image, templates are stored in `/templates`; you can
 replace this with a volume to supply custom templates.
 
+== Health checks
+
+If the `-enable-health-check` flag is present, a healthcheck endpoint will be exposed at `/_health`.
+This implements the https://tools.ietf.org/id/draft-inadarei-api-health-check-04.html[draft-inadarei-api-health-check-04]
+specification. Any application error that occurs when sending a mail or generating a captcha will
+result in a failing health check until the same operation succeeds again.
+
+Note that the health check exposes error messages, which could potentially contain information
+about the configuration of the service or parts of messages being sent. If this is a concern you
+may wish to restrict access to the URL.
+
 == Credits
 
 Developed by https://chameth.com[Chris Smith]; CSS heavily based on the login form in
  https://github.com/greboid/ig[ig] by https://greboid.com[Greg Holmes].
 
 Captchas are implemented using the https://github.com/dchest/captcha[dchest/captcha]
-library, and most functionality utilises libraries from the https://www.gorillatoolkit.org/[Gorilla web toolkit].
+library, and most functionality utilises libraries from the
+https://www.gorillatoolkit.org/[Gorilla web toolkit]. Health checks are implemented
+using https://github.com/nelkinda/health-go[nelkinda/health-go].
 
 == Licence
 

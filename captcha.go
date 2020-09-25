@@ -10,6 +10,7 @@ import (
 func beginCaptcha(rw http.ResponseWriter, req *http.Request, body string, replyTo string) {
 	session, err := store.New(req, sessionName)
 	if err != nil {
+		hc.recordCaptchaError(err)
 		log.Printf("Unable to get session: %s", err.Error())
 		rw.Header().Add("Location", "failure")
 		rw.WriteHeader(http.StatusSeeOther)
@@ -21,6 +22,7 @@ func beginCaptcha(rw http.ResponseWriter, req *http.Request, body string, replyT
 
 	err = session.Save(req, rw)
 	if err != nil {
+		hc.recordCaptchaError(err)
 		log.Printf("Unable to save session: %s", err.Error())
 		rw.Header().Add("Location", "failure")
 		rw.WriteHeader(http.StatusSeeOther)
@@ -34,6 +36,7 @@ func beginCaptcha(rw http.ResponseWriter, req *http.Request, body string, replyT
 func showCaptcha(rw http.ResponseWriter, req *http.Request) {
 	session, err := store.Get(req, sessionName)
 	if err != nil {
+		hc.recordCaptchaError(err)
 		log.Printf("Unable to get session: %s", err.Error())
 		rw.Header().Add("Location", "failure")
 		rw.WriteHeader(http.StatusSeeOther)
@@ -46,6 +49,7 @@ func showCaptcha(rw http.ResponseWriter, req *http.Request) {
 		session.Values[captchaKey] = captchaId
 
 		if err := session.Save(req, rw); err != nil {
+			hc.recordCaptchaError(err)
 			log.Printf("Unable to save session: %s", err.Error())
 			rw.Header().Add("Location", "failure")
 			rw.WriteHeader(http.StatusSeeOther)
@@ -68,10 +72,12 @@ func writeCaptchaImage(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Cache-Control", "no-cache")
 	rw.Header().Set("Content-Type", "image/png")
 	if err := captcha.WriteImage(rw, captchaId, captcha.StdWidth, captcha.StdHeight); err != nil {
+		hc.recordCaptchaError(err)
 		log.Printf("Unable to generate image captcha: %s", err.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	hc.recordCaptchaSuccess()
 }
 
 func writeCaptchaAudio(rw http.ResponseWriter, req *http.Request) {
@@ -85,10 +91,12 @@ func writeCaptchaAudio(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Content-Type", "audio/wav")
 	rw.Header().Set("Content-Disposition", "attachment")
 	if err := captcha.WriteAudio(rw, captchaId, "en"); err != nil {
+		hc.recordCaptchaError(err)
 		log.Printf("Unable to generate audio captcha: %s", err.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	hc.recordCaptchaSuccess()
 }
 
 func handleSolve(rw http.ResponseWriter, req *http.Request) {
@@ -100,6 +108,7 @@ func handleSolve(rw http.ResponseWriter, req *http.Request) {
 
 	digits := req.Form.Get("captcha")
 	if !captcha.VerifyString(captchaId, digits) {
+		hc.recordCaptchaSuccess()
 		rw.Header().Add("Location", "failure")
 		rw.WriteHeader(http.StatusSeeOther)
 		return
@@ -107,12 +116,14 @@ func handleSolve(rw http.ResponseWriter, req *http.Request) {
 
 	session, err := store.Get(req, sessionName)
 	if err != nil {
+		hc.recordCaptchaError(err)
 		log.Printf("Unable to get session: %s", err.Error())
 		rw.Header().Add("Location", "failure")
 		rw.WriteHeader(http.StatusSeeOther)
 		return
 	}
 
+	hc.recordCaptchaSuccess()
 	if sendMail(session.Values[replyToKey].(string), session.Values[bodyKey].(string)) {
 		rw.Header().Add("Location", "success")
 		rw.WriteHeader(http.StatusSeeOther)
@@ -125,6 +136,7 @@ func handleSolve(rw http.ResponseWriter, req *http.Request) {
 func findCaptcha(req *http.Request) (string, bool) {
 	session, err := store.Get(req, sessionName)
 	if err != nil {
+		hc.recordCaptchaError(err)
 		log.Printf("Unable to get session: %s", err.Error())
 		return "", false
 	}

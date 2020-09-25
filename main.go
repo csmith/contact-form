@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/jamiealquiza/envy"
+	"github.com/nelkinda/health-go"
 	"html/template"
 	"log"
 	"math/rand"
@@ -30,10 +31,13 @@ var (
 	csrfKey, sessionKey                    *string
 	smtpPort, port                         *int
 	enableCaptcha                          *bool
+	enableHealthCheck                      *bool
 	store                                  *sessions.CookieStore
 	formTemplate                           *template.Template
 	captchaTemplate                        *template.Template
 	successTemplate, failureTemplate       *template.Template
+
+	hc = &healthCheck{}
 )
 
 func sendMail(replyTo, message string) bool {
@@ -42,8 +46,10 @@ func sendMail(replyTo, message string) bool {
 	err := smtp.SendMail(fmt.Sprintf("%s:%d", *smtpServer, *smtpPort), auth, *fromAddress, []string{*toAddress}, []byte(body))
 	if err != nil {
 		log.Printf("Unable to send mail: %s", err)
+		hc.recordMailFailure(err)
 		return false
 	}
+	hc.recordMailSuccess()
 	return true
 }
 
@@ -135,6 +141,7 @@ func main() {
 	csrfKey = flag.String("crsf-key", "", "CRSF key to use")
 	sessionKey = flag.String("session-key", "", "Session key to use (for captcha support)")
 	enableCaptcha = flag.Bool("enable-captcha", false, "Whether to require captchas to be completed")
+	enableHealthCheck = flag.Bool("enable-health-check", false, "Whether to expose health checks at /_health")
 	port = flag.Int("port", 8080, "port to listen on for connections")
 
 	envy.Parse("CONTACT")
@@ -157,7 +164,7 @@ func main() {
 	}
 
 	store = sessions.NewCookieStore([]byte(*sessionKey))
-	store.Options =  &sessions.Options{
+	store.Options = &sessions.Options{
 		MaxAge:   0,
 		Secure:   true, // Set to false for local development
 		HttpOnly: true,
@@ -180,6 +187,12 @@ func main() {
 	r.HandleFunc("/captcha.png", writeCaptchaImage).Methods("GET")
 	r.HandleFunc("/captcha.wav", writeCaptchaAudio).Methods("GET")
 	r.HandleFunc("/solve", handleSolve).Methods("POST")
+
+	// Health checks
+	if *enableHealthCheck {
+		h := health.New(health.Health{Version: "1"}, hc)
+		r.HandleFunc("/_health", h.Handler)
+	}
 
 	// If developing locally, you'll need to pass csrf.Secure(false) as an argument below.
 	CSRF := csrf.Protect([]byte(*csrfKey), csrf.FieldName(csrfFieldName))
