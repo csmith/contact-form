@@ -3,11 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/alexedwards/scs/boltstore"
+	"github.com/alexedwards/scs/v2"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 	"github.com/jamiealquiza/envy"
 	"github.com/nelkinda/health-go"
+	"go.etcd.io/bbolt"
 	"html/template"
 	"log"
 	"math/rand"
@@ -15,6 +17,7 @@ import (
 	"net/smtp"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -26,16 +29,25 @@ const (
 )
 
 var (
-	fromAddress, toAddress, subject        *string
-	smtpServer, smtpUsername, smtpPassword *string
-	csrfKey, sessionKey                    *string
-	smtpPort, port                         *int
-	enableCaptcha                          *bool
-	enableHealthCheck                      *bool
-	store                                  *sessions.CookieStore
-	formTemplate                           *template.Template
-	captchaTemplate                        *template.Template
-	successTemplate, failureTemplate       *template.Template
+	fromAddress       = flag.String("from", "", "address to send e-mail from")
+	toAddress         = flag.String("to", "", "address to send e-mail to")
+	subject           = flag.String("subject", "Contact form submission", "e-mail subject")
+	smtpServer        = flag.String("smtp-host", "", "SMTP server to connect to")
+	smtpPort          = flag.Int("smtp-port", 25, "port to use when connecting to the SMTP server")
+	smtpUsername      = flag.String("smtp-user", "", "username to supply to the SMTP server")
+	smtpPassword      = flag.String("smtp-pass", "", "password to supply to the SMTP server")
+	csrfKey           = flag.String("crsf-key", "", "CRSF key to use")
+	sessionPath       = flag.String("session-path", "./sessions.db", "Path to persist session information")
+	enableCaptcha     = flag.Bool("enable-captcha", false, "Whether to require captchas to be completed")
+	enableHealthCheck = flag.Bool("enable-health-check", false, "Whether to expose health checks at /_health")
+	port              = flag.Int("port", 8080, "port to listen on for connections")
+
+	formTemplate    *template.Template
+	captchaTemplate *template.Template
+	successTemplate *template.Template
+	failureTemplate *template.Template
+
+	sessionManager *scs.SessionManager
 
 	hc = &healthCheck{}
 )
@@ -131,19 +143,6 @@ func loadTemplate(file string) (result *template.Template) {
 }
 
 func main() {
-	fromAddress = flag.String("from", "", "address to send e-mail from")
-	toAddress = flag.String("to", "", "address to send e-mail to")
-	subject = flag.String("subject", "Contact form submission", "e-mail subject")
-	smtpServer = flag.String("smtp-host", "", "SMTP server to connect to")
-	smtpPort = flag.Int("smtp-port", 25, "port to use when connecting to the SMTP server")
-	smtpUsername = flag.String("smtp-user", "", "username to supply to the SMTP server")
-	smtpPassword = flag.String("smtp-pass", "", "password to supply to the SMTP server")
-	csrfKey = flag.String("crsf-key", "", "CRSF key to use")
-	sessionKey = flag.String("session-key", "", "Session key to use (for captcha support)")
-	enableCaptcha = flag.Bool("enable-captcha", false, "Whether to require captchas to be completed")
-	enableHealthCheck = flag.Bool("enable-health-check", false, "Whether to expose health checks at /_health")
-	port = flag.Int("port", 8080, "port to listen on for connections")
-
 	envy.Parse("CONTACT")
 	flag.Parse()
 
@@ -158,18 +157,19 @@ func main() {
 		csrfKey = &newKey
 	}
 
-	if len(*sessionKey) != 32 {
-		newKey := randomKey()
-		sessionKey = &newKey
+	db, err := bbolt.Open(*sessionPath, 0600, nil)
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer db.Close()
 
-	store = sessions.NewCookieStore([]byte(*sessionKey))
-	store.Options = &sessions.Options{
-		MaxAge:   0,
-		Secure:   true, // Set to false for local development
-		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
-	}
+	sessionManager = scs.New()
+	sessionManager.Store = boltstore.NewWithCleanupInterval(db, time.Hour)
+	sessionManager.Cookie.Name = sessionName
+	sessionManager.Cookie.HttpOnly = true
+	sessionManager.Cookie.Persist = false
+	sessionManager.Cookie.Secure = true
+	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 
 	formTemplate = loadTemplate("form.html")
 	captchaTemplate = loadTemplate("captcha.html")
@@ -196,8 +196,7 @@ func main() {
 
 	// If developing locally, you'll need to pass csrf.Secure(false) as an argument below.
 	CSRF := csrf.Protect([]byte(*csrfKey), csrf.FieldName(csrfFieldName))
-	err := http.ListenAndServe(fmt.Sprintf(":%d", *port), CSRF(r))
-	if err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), sessionManager.LoadAndSave(CSRF(r))); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Unable to listen on port %d: %s\n", *port, err.Error())
 	}
 }

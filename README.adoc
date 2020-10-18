@@ -35,8 +35,8 @@ other options have vaguely sensible fallbacks.
     	address to send e-mail from [CONTACT_FROM]
   -port int
     	port to listen on for connections [CONTACT_PORT] (default 8080)
-  -session-key string
-        Session key to use (for captcha support) [CONTACT_SESSION_KEY]
+  -session-path string
+        Path to persist session information [CONTACT_SESSION_PATH] (default "./sessions.db")
   -smtp-host string
     	SMTP server to connect to [CONTACT_SMTP_HOST]
   -smtp-pass string

@@ -8,53 +8,23 @@ import (
 )
 
 func beginCaptcha(rw http.ResponseWriter, req *http.Request, body string, replyTo string) {
-	session, err := store.New(req, sessionName)
-	if err != nil {
-		hc.recordCaptchaError(err)
-		log.Printf("Unable to get session: %s", err.Error())
-		rw.Header().Add("Location", "failure")
-		rw.WriteHeader(http.StatusSeeOther)
-		return
-	}
-
-	session.Values[bodyKey] = body
-	session.Values[replyToKey] = replyTo
-
-	err = session.Save(req, rw)
-	if err != nil {
-		hc.recordCaptchaError(err)
-		log.Printf("Unable to save session: %s", err.Error())
-		rw.Header().Add("Location", "failure")
-		rw.WriteHeader(http.StatusSeeOther)
-		return
-	}
-
+	sessionManager.Put(req.Context(), bodyKey, body)
+	sessionManager.Put(req.Context(), replyToKey, replyTo)
 	rw.Header().Add("Location", "captcha")
 	rw.WriteHeader(http.StatusSeeOther)
 }
 
 func showCaptcha(rw http.ResponseWriter, req *http.Request) {
-	session, err := store.Get(req, sessionName)
-	if err != nil {
-		hc.recordCaptchaError(err)
-		log.Printf("Unable to get session: %s", err.Error())
+	if !sessionManager.Exists(req.Context(), bodyKey) || !sessionManager.Exists(req.Context(), replyToKey) {
 		rw.Header().Add("Location", "failure")
 		rw.WriteHeader(http.StatusSeeOther)
 		return
 	}
 
-	captchaId, ok := session.Values[captchaKey]
-	if !ok || !captcha.Reload(captchaId.(string)) {
+	captchaId := sessionManager.GetString(req.Context(), captchaKey)
+	if captchaId == "" || !captcha.Reload(captchaId) {
 		captchaId = captcha.New()
-		session.Values[captchaKey] = captchaId
-
-		if err := session.Save(req, rw); err != nil {
-			hc.recordCaptchaError(err)
-			log.Printf("Unable to save session: %s", err.Error())
-			rw.Header().Add("Location", "failure")
-			rw.WriteHeader(http.StatusSeeOther)
-			return
-		}
+		sessionManager.Put(req.Context(), captchaKey, captchaId)
 	}
 
 	_ = captchaTemplate.ExecuteTemplate(rw, "captcha.html", map[string]interface{}{
@@ -63,8 +33,8 @@ func showCaptcha(rw http.ResponseWriter, req *http.Request) {
 }
 
 func writeCaptchaImage(rw http.ResponseWriter, req *http.Request) {
-	captchaId, ok := findCaptcha(req)
-	if !ok {
+	captchaId := sessionManager.GetString(req.Context(), captchaKey)
+	if captchaId == "" {
 		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -81,8 +51,8 @@ func writeCaptchaImage(rw http.ResponseWriter, req *http.Request) {
 }
 
 func writeCaptchaAudio(rw http.ResponseWriter, req *http.Request) {
-	captchaId, ok := findCaptcha(req)
-	if !ok {
+	captchaId := sessionManager.GetString(req.Context(), captchaKey)
+	if captchaId == "" {
 		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -100,8 +70,8 @@ func writeCaptchaAudio(rw http.ResponseWriter, req *http.Request) {
 }
 
 func handleSolve(rw http.ResponseWriter, req *http.Request) {
-	captchaId, ok := findCaptcha(req)
-	if !ok {
+	captchaId := sessionManager.GetString(req.Context(), captchaKey)
+	if captchaId == "" {
 		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -114,37 +84,12 @@ func handleSolve(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	session, err := store.Get(req, sessionName)
-	if err != nil {
-		hc.recordCaptchaError(err)
-		log.Printf("Unable to get session: %s", err.Error())
-		rw.Header().Add("Location", "failure")
-		rw.WriteHeader(http.StatusSeeOther)
-		return
-	}
-
 	hc.recordCaptchaSuccess()
-	if sendMail(session.Values[replyToKey].(string), session.Values[bodyKey].(string)) {
+	if sendMail(sessionManager.PopString(req.Context(), replyToKey), sessionManager.PopString(req.Context(), bodyKey)) {
 		rw.Header().Add("Location", "success")
 		rw.WriteHeader(http.StatusSeeOther)
 	} else {
 		rw.Header().Add("Location", "failure")
 		rw.WriteHeader(http.StatusSeeOther)
 	}
-}
-
-func findCaptcha(req *http.Request) (string, bool) {
-	session, err := store.Get(req, sessionName)
-	if err != nil {
-		hc.recordCaptchaError(err)
-		log.Printf("Unable to get session: %s", err.Error())
-		return "", false
-	}
-
-	captchaId, ok := session.Values[captchaKey]
-	if !ok {
-		return "", false
-	}
-
-	return captchaId.(string), true
 }

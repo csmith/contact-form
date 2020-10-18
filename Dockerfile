@@ -4,12 +4,14 @@ WORKDIR /go/src/app
 
 COPY . .
 RUN CGO_ENABLED=0 GO111MODULE=on go install .
+RUN mkdir /sessions
 
-FROM scratch
+FROM gcr.io/distroless/base:nonroot
 COPY --from=build /go/bin/contact-form /contact-form
 COPY --from=build /go/src/app/*.html /templates/
-COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build --chown=nonroot /sessions /sessions
 
 WORKDIR /templates
-ENTRYPOINT ["/contact-form"]
+VOLUME /sessions
+ENTRYPOINT ["/contact-form", "--session-path", "/sessions/sessions.db"]
 EXPOSE 8080
