@@ -20,5 +20,5 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/nelkinda/http-go v0.0.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd // indirect
+	golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d // indirect
 )
