@@ -12,7 +12,7 @@ image:example-email.png[Example email message]
 
 The simplest way to use this is via docker:
 
-    docker run -d csmith/contact-form -from form@server.com -to me@email.com .....
+    docker run -d ghcr.io/csmith/contact-form -from form@server.com -to me@email.com .....
 
 You should place this service behind an TLS-terminating proxy, and ensure it
 is requested over a secure connection.
