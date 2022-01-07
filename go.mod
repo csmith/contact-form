@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/alexedwards/scs/boltstore v0.0.0-20200729112010-8c9ddd400378
-	github.com/alexedwards/scs/v2 v2.4.0
+	github.com/alexedwards/scs/v2 v2.5.0
 	github.com/dchest/captcha v0.0.0-20200903113550-03f5f0333e1f
 	github.com/gorilla/csrf v1.7.1
 	github.com/gorilla/mux v1.8.0
