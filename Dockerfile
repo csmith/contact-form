@@ -1,4 +1,4 @@
-FROM golang:1.18.2 AS build
+FROM golang:1.19rc2 AS build
 
 WORKDIR /go/src/app
 
