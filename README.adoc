@@ -10,12 +10,12 @@ image:example-email.png[Example email message]
 
 == Usage
 
-The simplest way to use this is via docker:
+The simplest way to use this is via docker. See the `examples` directory for some
+example docker-compose files. The latest stable version of this project is published
+at `ghcr.io/csmith/contact-form:latest`.
 
-    docker run -d ghcr.io/csmith/contact-form -from form@server.com -to me@email.com .....
-
-You should place this service behind an TLS-terminating proxy, and ensure it
-is requested over a secure connection.
+You should place this service behind an TLS-terminating proxy such as Caddy or Traefik,
+and ensure it is requested over a secure connection.
 
 == Parameters
 

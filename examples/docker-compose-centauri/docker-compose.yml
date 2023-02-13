@@ -1,0 +1,52 @@
+services:
+  centauri:
+    image: "ghcr.io/csmith/centauri"
+    restart: "always"
+    ports:
+      - "80:8080"
+      - "443:8443"
+    volumes:
+      - "./centauri.conf:/centauri.conf:ro"
+      - "./data:/data"
+    environment:
+      CONFIG: "/centauri.conf"
+      USER_DATA: "/data/user.json"
+      CERTIFICATE_STORE: "/data/certs.json"
+      ACME_EMAIL: "you@example.com"
+
+      # Centauri uses DNS challenges to prove domain ownership. See the Lego docs for all avialable
+      # providers and their configuration: https://go-acme.github.io/lego/dns/
+      DNS_PROVIDER: "httpreq"
+      HTTPREQ_ENDPOINT: "https://api.mydnsprovider.example.com/httpreq"
+      HTTPREQ_USERNAME: "dns@example.com"
+      HTTPREQ_PASSWORD: "myp@ssw0rd"
+
+  contactform:
+    image: "ghcr.io/csmith/contact-form"
+    restart: "always"
+    volumes:
+      # Optional volume to ensure sessions persist if the container is restarted.
+      - "./storage:/sessions"
+    environment:
+      # Optional setting to ensure forms can be submitted if the container is restarted.
+      # Use `openssl rand -hex 32` to generate a 32 character CSRF key. Do not use this one.
+      CONTACT_CSRF_KEY: "5ed5d1a97865e7b7a2c0e3d5b038dc6e28514203139d0e5c318fee45dc143ec2"
+
+      # Optional features. Captcha requires users to complete a captcha before submitting the
+      # form. Health check enables an endpoint at /_health showing the status of the service.
+      CONTACT_ENABLE_CAPTCHA: "true"
+      CONTACT_ENABLE_HEALTH_CHECK: "true"
+
+      # Details of the e-mail which will be sent. "To" should be your e-mail address. The
+      # "From" address should be one permitted to send mail via your email server.
+      CONTACT_FROM: "contactform@example.com"
+      CONTACT_SUBJECT: "Contact form submission"
+      CONTACT_TO: "me@example.com"
+
+      # E-mail server details. If you don't have your own mail server, services like mailgun
+      # and Amazon SES offer generous free tiers with SMTP access.
+      CONTACT_SMTP_HOST: "smtp.example.com"
+      CONTACT_SMTP_PORT: "563"
+      CONTACT_SMTP_PASS: "myp@ssw0rd"
+      CONTACT_SMTP_USER: "me"
+
