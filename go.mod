@@ -1,6 +1,6 @@
 module contact-form
 
-go 1.17
+go 1.20
 
 require (
 	github.com/alexedwards/scs/boltstore v0.0.0-20200729112010-8c9ddd400378
