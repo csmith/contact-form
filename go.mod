@@ -7,7 +7,7 @@ require (
 	github.com/alexedwards/scs/v2 v2.5.1
 	github.com/dchest/captcha v1.0.0
 	github.com/gorilla/csrf v1.7.1
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/mux v1.8.1
 	github.com/jamiealquiza/envy v1.1.0
 	github.com/nelkinda/health-go v0.0.1
 	github.com/spf13/cobra v1.0.0 // indirect
