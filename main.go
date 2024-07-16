@@ -7,7 +7,6 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/csmith/envflag"
 	"github.com/gorilla/csrf"
-	"github.com/gorilla/mux"
 	"github.com/nelkinda/health-go"
 	"go.etcd.io/bbolt"
 	"html/template"
@@ -176,22 +175,22 @@ func main() {
 	successTemplate = loadTemplate("success.html")
 	failureTemplate = loadTemplate("failure.html")
 
-	r := mux.NewRouter()
-	r.HandleFunc("/", showForm).Methods("GET")
-	r.HandleFunc("/success", showSuccess).Methods("GET")
-	r.HandleFunc("/failure", showFailure).Methods("GET")
-	r.HandleFunc("/submit", handleSubmit).Methods("POST")
+	r := http.NewServeMux()
+	r.HandleFunc("GET /", showForm)
+	r.HandleFunc("GET /success", showSuccess)
+	r.HandleFunc("GET /failure", showFailure)
+	r.HandleFunc("POST /submit", handleSubmit)
 
 	// Captcha endpoints
-	r.HandleFunc("/captcha", showCaptcha).Methods("GET")
-	r.HandleFunc("/captcha.png", writeCaptchaImage).Methods("GET")
-	r.HandleFunc("/captcha.wav", writeCaptchaAudio).Methods("GET")
-	r.HandleFunc("/solve", handleSolve).Methods("POST")
+	r.HandleFunc("GET /captcha", showCaptcha)
+	r.HandleFunc("GET /captcha.png", writeCaptchaImage)
+	r.HandleFunc("GET /captcha.wav", writeCaptchaAudio)
+	r.HandleFunc("POST /solve", handleSolve)
 
 	// Health checks
 	if *enableHealthCheck {
 		h := health.New(health.Health{Version: "1"}, hc)
-		r.HandleFunc("/_health", h.Handler)
+		r.HandleFunc("GET /_health", h.Handler)
 	}
 
 	// If developing locally, you'll need to pass csrf.Secure(false) as an argument below.

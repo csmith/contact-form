@@ -90,9 +90,8 @@ Developed by https://chameth.com[Chris Smith]; CSS heavily based on the login fo
  https://github.com/greboid/ig[ig] by https://greboid.com[Greg Holmes].
 
 Captchas are implemented using the https://github.com/dchest/captcha[dchest/captcha]
-library, and most functionality utilises libraries from the
-https://www.gorillatoolkit.org/[Gorilla web toolkit]. Health checks are implemented
-using https://github.com/nelkinda/health-go[nelkinda/health-go].
+library, CSRF protection uses the https://www.gorillatoolkit.org/[Gorilla web toolkit].
+Health checks are implemented using https://github.com/nelkinda/health-go[nelkinda/health-go].
 
 == Licence
 

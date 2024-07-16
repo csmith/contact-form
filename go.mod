@@ -9,7 +9,6 @@ require (
 	github.com/alexedwards/scs/v2 v2.8.0
 	github.com/dchest/captcha v1.0.0
 	github.com/gorilla/csrf v1.7.2
-	github.com/gorilla/mux v1.8.0
 	github.com/nelkinda/health-go v0.0.1
 	go.etcd.io/bbolt v1.3.10
 )
