@@ -170,10 +170,10 @@ func main() {
 	sessionManager.Cookie.Secure = true
 	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 
-	formTemplate = loadTemplate("form.html")
-	captchaTemplate = loadTemplate("captcha.html")
-	successTemplate = loadTemplate("success.html")
-	failureTemplate = loadTemplate("failure.html")
+	formTemplate = loadTemplate("templates/form.html")
+	captchaTemplate = loadTemplate("templates/captcha.html")
+	successTemplate = loadTemplate("templates/success.html")
+	failureTemplate = loadTemplate("templates/failure.html")
 
 	r := http.NewServeMux()
 	r.HandleFunc("GET /", showForm)

@@ -57,8 +57,10 @@ https://aws.amazon.com/ses/[AWS SES], both of which you can access over SMTP.
 
 == Templates
 
-The form itself is loaded from `form.html` in the working directory; success and failure pages from `success.html`
-and `failure.html` respectively. If captcha support is enabled, the captcha page is loaded from `captcha.html`.
+All templates are loaded from the `templates` directory, which is expected to
+be in the current working directory. The form itself is loaded from `form.html`;
+success and failure pages from `success.html` and `failure.html` respectively.
+If captcha support is enabled, the captcha page is loaded from `captcha.html`.
 Each page is loaded as a https://golang.org/pkg/html/template/[go html.template] and
 can use the templating syntax described there. Forms must contain the `{{ .csrfField }}` template field, which
 will automatically insert the CSRF token for the request.
