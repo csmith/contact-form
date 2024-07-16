@@ -75,6 +75,15 @@ No server-side validation is performed.
 When running from the docker image, templates are stored in `/templates`; you can
 replace this with a volume to supply custom templates.
 
+== Static files
+
+Any files in the `static` directory will be served under the path `/static/`.
+By default that is just a single stylesheet (`style.css`) that is used by the
+default templates.
+
+When running from the docker image, static files are stored in `/static`; you can
+replace this with a volume to supply custom files.
+
 == Health checks
 
 If the `-enable-health-check` flag is present, a healthcheck endpoint will be exposed at `/_health`.

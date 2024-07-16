@@ -181,6 +181,10 @@ func main() {
 	r.HandleFunc("GET /failure", showFailure)
 	r.HandleFunc("POST /submit", handleSubmit)
 
+	// Static files (with no index)
+	r.Handle("GET /static/{$}", http.NotFoundHandler())
+	r.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+
 	// Captcha endpoints
 	r.HandleFunc("GET /captcha", showCaptcha)
 	r.HandleFunc("GET /captcha.png", writeCaptchaImage)

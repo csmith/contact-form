@@ -9,6 +9,7 @@ RUN mkdir /sessions
 FROM gcr.io/distroless/base:nonroot
 COPY --from=build /go/bin/contact-form /contact-form
 COPY --from=build /go/src/app/templates /templates
+COPY --from=build /go/src/app/static /static
 COPY --from=build --chown=nonroot /sessions /sessions
 
 WORKDIR /
