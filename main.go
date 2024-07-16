@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/alexedwards/scs/boltstore"
 	"github.com/alexedwards/scs/v2"
+	"github.com/csmith/envflag"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
-	"github.com/jamiealquiza/envy"
 	"github.com/nelkinda/health-go"
 	"go.etcd.io/bbolt"
 	"html/template"
@@ -143,7 +143,7 @@ func loadTemplate(file string) (result *template.Template) {
 }
 
 func main() {
-	envy.Parse("CONTACT")
+	envflag.Parse(envflag.WithPrefix("CONTACT_"))
 	flag.Parse()
 
 	checkFlag(*fromAddress, "from address")
