@@ -1,0 +1,9 @@
+name: build go project
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+jobs:
+  build:
+    uses: csmith/github-workflows/.github/workflows/go-build.yml@master
