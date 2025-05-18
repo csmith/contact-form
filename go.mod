@@ -1,6 +1,6 @@
 module contact-form
 
-go 1.23.0
+go 1.24.2
 
 toolchain go1.24.3
 
@@ -15,6 +15,7 @@ require (
 require (
 	filippo.io/csrf v0.0.0-20250517103426-cfb6fbb0fbe3
 	github.com/csmith/envflag/v2 v2.0.0
+	github.com/csmith/slogflags v1.1.0
 )
 
 require (

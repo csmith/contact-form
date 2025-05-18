@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.1.0 - 2025-05-18
+
 ### Major changes
 
 - CSRF protection now relies on the `Sec-Fetch-Site` header sent by all modern
@@ -10,6 +12,16 @@
   - `{{.csrfField}}` is no longer required in templates
     - it will evaluate to an empty string for compatibility with existing templates
   - Connecting to a development version on `localhost` now works without code modifications
+  - Removes dependency on gorilla/csrf
+
+### Other changes
+
+- Added more extensive logging. This can be customised using the `log.level` and
+  `log.format` flags (or equivalent env vars)
+  - At `DEBUG` level (disabled by default), e-mail addresses will appear in logs
+- The HTTP server is now shutdown correctly, allowing clients to finish requests
+  that are in-flight
+- Minor dependency updates
 
 ## 2.0.0 - 2024-07-16
 

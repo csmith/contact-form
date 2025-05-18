@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/dchest/captcha"
-	"log"
 	"net/http"
 )
 
@@ -15,6 +14,7 @@ func beginCaptcha(rw http.ResponseWriter, req *http.Request, body string, replyT
 
 func showCaptcha(rw http.ResponseWriter, req *http.Request) {
 	if !sessionManager.Exists(req.Context(), bodyKey) || !sessionManager.Exists(req.Context(), replyToKey) {
+		log.Debug("Attempted to show captcha but session is in bad state. Redirecting to failure.")
 		rw.Header().Add("Location", "failure")
 		rw.WriteHeader(http.StatusSeeOther)
 		return
@@ -22,6 +22,7 @@ func showCaptcha(rw http.ResponseWriter, req *http.Request) {
 
 	captchaId := sessionManager.GetString(req.Context(), captchaKey)
 	if captchaId == "" || !captcha.Reload(captchaId) {
+		log.Debug("Generating new captcha ID")
 		captchaId = captcha.New()
 		sessionManager.Put(req.Context(), captchaKey, captchaId)
 	}
@@ -42,7 +43,7 @@ func writeCaptchaImage(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Content-Type", "image/png")
 	if err := captcha.WriteImage(rw, captchaId, captcha.StdWidth, captcha.StdHeight); err != nil {
 		hc.recordCaptchaError(err)
-		log.Printf("Unable to generate image captcha: %s", err.Error())
+		log.Error("Unable to generate image captcha", "error", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -61,7 +62,7 @@ func writeCaptchaAudio(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Content-Disposition", "attachment")
 	if err := captcha.WriteAudio(rw, captchaId, "en"); err != nil {
 		hc.recordCaptchaError(err)
-		log.Printf("Unable to generate audio captcha: %s", err.Error())
+		log.Error("Unable to generate audio captcha", "error", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -71,18 +72,21 @@ func writeCaptchaAudio(rw http.ResponseWriter, req *http.Request) {
 func handleSolve(rw http.ResponseWriter, req *http.Request) {
 	captchaId := sessionManager.GetString(req.Context(), captchaKey)
 	if captchaId == "" {
+		log.Debug("Client tried to solve without a known captcha")
 		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
 
 	digits := req.Form.Get("captcha")
 	if !captcha.VerifyString(captchaId, digits) {
+		log.Debug("Client presented incorrect captcha solution")
 		hc.recordCaptchaSuccess()
 		rw.Header().Add("Location", "failure")
 		rw.WriteHeader(http.StatusSeeOther)
 		return
 	}
 
+	log.Debug("Client presented correct captcha solution, sending mail")
 	hc.recordCaptchaSuccess()
 	if sendMail(sessionManager.PopString(req.Context(), replyToKey), sessionManager.PopString(req.Context(), bodyKey)) {
 		rw.Header().Add("Location", "success")

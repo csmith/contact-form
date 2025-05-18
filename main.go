@@ -1,20 +1,26 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"filippo.io/csrf"
 	"flag"
 	"fmt"
 	"github.com/alexedwards/scs/boltstore"
 	"github.com/alexedwards/scs/v2"
 	"github.com/csmith/envflag/v2"
+	"github.com/csmith/slogflags"
 	"github.com/nelkinda/health-go"
 	"go.etcd.io/bbolt"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/smtp"
 	"os"
+	"os/signal"
+	"runtime/debug"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -46,15 +52,112 @@ var (
 
 	sessionManager *scs.SessionManager
 
-	hc = &healthCheck{}
+	hc  = &healthCheck{}
+	log *slog.Logger
 )
+
+func main() {
+	envflag.Parse(envflag.WithPrefix("CONTACT_"))
+	log = slogflags.Logger()
+
+	checkFlag(*fromAddress, "from address")
+	checkFlag(*toAddress, "to address")
+	checkFlag(*smtpServer, "SMTP server")
+	checkFlag(*smtpUsername, "SMTP username")
+	checkFlag(*smtpPassword, "SMTP password")
+
+	db, err := bbolt.Open(*sessionPath, 0600, nil)
+	if err != nil {
+		log.Error("Unable to open session database", "error", err, "path", *sessionPath)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	sessionManager = scs.New()
+	sessionManager.Store = boltstore.NewWithCleanupInterval(db, time.Hour)
+	sessionManager.Cookie.Name = sessionName
+	sessionManager.Cookie.HttpOnly = true
+	sessionManager.Cookie.Persist = false
+	sessionManager.Cookie.Secure = true
+	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
+
+	formTemplate = loadTemplate("templates/form.html")
+	captchaTemplate = loadTemplate("templates/captcha.html")
+	successTemplate = loadTemplate("templates/success.html")
+	failureTemplate = loadTemplate("templates/failure.html")
+
+	r := http.NewServeMux()
+	r.HandleFunc("GET /", showForm)
+	r.HandleFunc("GET /success", showSuccess)
+	r.HandleFunc("GET /failure", showFailure)
+	r.HandleFunc("POST /submit", handleSubmit)
+
+	// Static files (with no index)
+	r.Handle("GET /static/{$}", http.NotFoundHandler())
+	r.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+
+	// Captcha endpoints
+	r.HandleFunc("GET /captcha", showCaptcha)
+	r.HandleFunc("GET /captcha.png", writeCaptchaImage)
+	r.HandleFunc("GET /captcha.wav", writeCaptchaAudio)
+	r.HandleFunc("POST /solve", handleSolve)
+
+	// Health checks
+	if *enableHealthCheck {
+		log.Debug("Registering health check handler")
+		h := health.New(health.Health{Version: "1"}, hc)
+		r.HandleFunc("GET /_health", h.Handler)
+	}
+
+	protection := csrf.New()
+	trustedOrigins := strings.Split(*csrfTrustedOrigins, ",")
+	for i := range trustedOrigins {
+		if trustedOrigins[i] != "" {
+			log.Debug("Registering trusted origin", "origin", trustedOrigins[i])
+			if err := protection.AddTrustedOrigin(trustedOrigins[i]); err != nil {
+				log.Error("Failed to add trusted CSRF origin", "error", err, "origin", trustedOrigins[i])
+				os.Exit(1)
+			}
+		}
+	}
+
+	version := "unknown"
+	if buildInfo, ok := debug.ReadBuildInfo(); ok {
+		version = buildInfo.Main.Version
+	}
+	log.Info("Starting contact form server...", "port", *port, "version", version)
+
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", *port),
+		Handler: sessionManager.LoadAndSave(protection.Handler(r)),
+	}
+
+	go func() {
+		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			log.Error("Unable to listen on port", "port", *port, "error", err)
+		}
+		log.Info("Contact form server stopped")
+	}()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	<-c
+
+	shutdownCtx, shutdownRelease := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownRelease()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Error("Failed to shut down HTTP server", "error", err)
+	}
+}
 
 func sendMail(replyTo, message string) bool {
 	auth := smtp.PlainAuth("", *smtpUsername, *smtpPassword, *smtpServer)
 	body := fmt.Sprintf("To: %s\r\nSubject: %s\r\nReply-to: %s\r\nFrom: Online contact form <%s>\r\n\r\n%s\r\n", *toAddress, *subject, replyTo, *fromAddress, message)
+	log.Debug("Sending e-mail message", "from", *fromAddress, "to", *toAddress, "subject", *subject, "replyTo", replyTo)
 	err := smtp.SendMail(fmt.Sprintf("%s:%d", *smtpServer, *smtpPort), auth, *fromAddress, []string{*toAddress}, []byte(body))
 	if err != nil {
-		log.Printf("Unable to send mail: %s", err)
+		log.Error("Unable to send e-mail", "error", err)
 		hc.recordMailFailure(err)
 		return false
 	}
@@ -73,11 +176,14 @@ func handleSubmit(rw http.ResponseWriter, req *http.Request) {
 	replyTo = strings.ReplaceAll(replyTo, "\r", "")
 
 	if *enableCaptcha {
+		log.Debug("Form submitted, presenting captcha", "replyTo", replyTo, "remoteAddr")
 		beginCaptcha(rw, req, body, replyTo)
 	} else if sendMail(replyTo, body) {
+		log.Debug("Form submitted successfully, redirecting to success handler", "replyTo", replyTo)
 		rw.Header().Add("Location", "success")
 		rw.WriteHeader(http.StatusSeeOther)
 	} else {
+		log.Debug("Form submitted with error, redirecting to failure handler", "replyTo", replyTo)
 		rw.Header().Add("Location", "failure")
 		rw.WriteHeader(http.StatusSeeOther)
 	}
@@ -125,69 +231,4 @@ func loadTemplate(file string) (result *template.Template) {
 		os.Exit(1)
 	}
 	return
-}
-
-func main() {
-	envflag.Parse(envflag.WithPrefix("CONTACT_"))
-	flag.Parse()
-
-	checkFlag(*fromAddress, "from address")
-	checkFlag(*toAddress, "to address")
-	checkFlag(*smtpServer, "SMTP server")
-	checkFlag(*smtpUsername, "SMTP username")
-	checkFlag(*smtpPassword, "SMTP password")
-
-	db, err := bbolt.Open(*sessionPath, 0600, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	sessionManager = scs.New()
-	sessionManager.Store = boltstore.NewWithCleanupInterval(db, time.Hour)
-	sessionManager.Cookie.Name = sessionName
-	sessionManager.Cookie.HttpOnly = true
-	sessionManager.Cookie.Persist = false
-	sessionManager.Cookie.Secure = true
-	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
-
-	formTemplate = loadTemplate("templates/form.html")
-	captchaTemplate = loadTemplate("templates/captcha.html")
-	successTemplate = loadTemplate("templates/success.html")
-	failureTemplate = loadTemplate("templates/failure.html")
-
-	r := http.NewServeMux()
-	r.HandleFunc("GET /", showForm)
-	r.HandleFunc("GET /success", showSuccess)
-	r.HandleFunc("GET /failure", showFailure)
-	r.HandleFunc("POST /submit", handleSubmit)
-
-	// Static files (with no index)
-	r.Handle("GET /static/{$}", http.NotFoundHandler())
-	r.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
-
-	// Captcha endpoints
-	r.HandleFunc("GET /captcha", showCaptcha)
-	r.HandleFunc("GET /captcha.png", writeCaptchaImage)
-	r.HandleFunc("GET /captcha.wav", writeCaptchaAudio)
-	r.HandleFunc("POST /solve", handleSolve)
-
-	// Health checks
-	if *enableHealthCheck {
-		h := health.New(health.Health{Version: "1"}, hc)
-		r.HandleFunc("GET /_health", h.Handler)
-	}
-
-	protection := csrf.New()
-	trustedOrigins := strings.Split(*csrfTrustedOrigins, ",")
-	for i := range trustedOrigins {
-		if trustedOrigins[i] != "" {
-			if err := protection.AddTrustedOrigin(trustedOrigins[i]); err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), sessionManager.LoadAndSave(protection.Handler(r))); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Unable to listen on port %d: %s\n", *port, err.Error())
-	}
 }

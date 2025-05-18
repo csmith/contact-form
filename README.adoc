@@ -33,6 +33,10 @@ other options have vaguely sensible fallbacks.
     	[CONTACT_ENABLE_HEALTH_CHECK] Whether to expose health checks at /_health
   -from string
     	[CONTACT_FROM] address to send e-mail from
+  -log.format string
+    	[CONTACT_LOG_FORMAT] Format of log output ('json' or 'text') (default "text")
+  -log.level string
+    	[CONTACT_LOG_LEVEL] Lowest level of logs that should be output
   -port int
     	[CONTACT_PORT] port to listen on for connections (default 8080)
   -session-path string
@@ -54,6 +58,9 @@ other options have vaguely sensible fallbacks.
 You can use any SMTP server; however I recommend using a dedicated service
 such as https://www.mailgun.com/[mailgun] or
 https://aws.amazon.com/ses/[AWS SES], both of which you can access over SMTP.
+
+If you enable `DEBUG` level logging, be aware that e-mail addresses will be
+logged.
 
 == Templates
 

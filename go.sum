@@ -13,6 +13,8 @@ github.com/christianhujer/assert v0.0.2/go.mod h1:yszWvVhUvkosrPxaPy9FqnC6XH16zF
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/csmith/envflag/v2 v2.0.0 h1:jho28W/psEqJ02EdbUHmkmFpbc5HFhog6NzHRbgtIFg=
 github.com/csmith/envflag/v2 v2.0.0/go.mod h1:GNzzXvZ2bC3z6tdoO45mTrs7l4Uht2WfBKaF1KQu0Pk=
+github.com/csmith/slogflags v1.1.0 h1:HHRIjCq8Oorh0IycjHbqBYECQ778Ay1OYNr+c/WQf8g=
+github.com/csmith/slogflags v1.1.0/go.mod h1:M8Q+BmnQItanz/rs2tO5J6bgt4lZZQJiu2EWTO2aEzA=
 github.com/cucumber/gherkin-go/v11 v11.0.0/go.mod h1:CX33k2XU2qog4e+TFjOValoq6mIUq0DmVccZs238R9w=
 github.com/cucumber/godog v0.9.0/go.mod h1:roWCHkpeK6UTOyIRRl7IR+fgfBeZ4vZR7OSq2J/NbM4=
 github.com/cucumber/messages-go/v10 v10.0.1/go.mod h1:kA5T38CBlBbYLU12TIrJ4fk4wSkVVOgyh7Enyy8WnSg=
