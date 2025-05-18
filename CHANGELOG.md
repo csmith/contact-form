@@ -1,6 +1,17 @@
 # Changelog
 
-## v2.0.0
+## Unreleased
+
+### Major changes
+
+- CSRF protection now relies on the `Sec-Fetch-Site` header sent by all modern
+  browsers.
+  - CSRF cookies are no longer used
+  - `{{.csrfField}}` is no longer required in templates
+    - it will evaluate to an empty string for compatibility with existing templates
+  - Connecting to a development version on `localhost` now works without code modifications
+
+## 2.0.0 - 2024-07-16
 
 ### Breaking changes
 
@@ -15,6 +26,12 @@
 - Minor dependency version updates
 - Replaced gorilla/mux with Go's built in http.ServeMux
 
-## v1.0.1
+## 1.0.1 - 2023-02-13
+
+### Other changes
 
 - Minor dependency updates
+
+## 1.0.0 - 2021-09-01
+
+_Initial release._

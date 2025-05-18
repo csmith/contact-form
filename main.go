@@ -1,17 +1,16 @@
 package main
 
 import (
+	"filippo.io/csrf"
 	"flag"
 	"fmt"
 	"github.com/alexedwards/scs/boltstore"
 	"github.com/alexedwards/scs/v2"
-	"github.com/csmith/envflag"
-	"github.com/gorilla/csrf"
+	"github.com/csmith/envflag/v2"
 	"github.com/nelkinda/health-go"
 	"go.etcd.io/bbolt"
 	"html/template"
 	"log"
-	"math/rand"
 	"net/http"
 	"net/smtp"
 	"os"
@@ -20,26 +19,25 @@ import (
 )
 
 const (
-	csrfFieldName = "csrf.Token"
-	sessionName   = "contactform"
-	bodyKey       = "body"
-	replyToKey    = "replyTo"
-	captchaKey    = "captchaId"
+	sessionName = "contactform"
+	bodyKey     = "body"
+	replyToKey  = "replyTo"
+	captchaKey  = "captchaId"
 )
 
 var (
-	fromAddress       = flag.String("from", "", "address to send e-mail from")
-	toAddress         = flag.String("to", "", "address to send e-mail to")
-	subject           = flag.String("subject", "Contact form submission", "e-mail subject")
-	smtpServer        = flag.String("smtp-host", "", "SMTP server to connect to")
-	smtpPort          = flag.Int("smtp-port", 25, "port to use when connecting to the SMTP server")
-	smtpUsername      = flag.String("smtp-user", "", "username to supply to the SMTP server")
-	smtpPassword      = flag.String("smtp-pass", "", "password to supply to the SMTP server")
-	csrfKey           = flag.String("crsf-key", "", "CRSF key to use")
-	sessionPath       = flag.String("session-path", "./sessions.db", "Path to persist session information")
-	enableCaptcha     = flag.Bool("enable-captcha", false, "Whether to require captchas to be completed")
-	enableHealthCheck = flag.Bool("enable-health-check", false, "Whether to expose health checks at /_health")
-	port              = flag.Int("port", 8080, "port to listen on for connections")
+	fromAddress        = flag.String("from", "", "address to send e-mail from")
+	toAddress          = flag.String("to", "", "address to send e-mail to")
+	subject            = flag.String("subject", "Contact form submission", "e-mail subject")
+	smtpServer         = flag.String("smtp-host", "", "SMTP server to connect to")
+	smtpPort           = flag.Int("smtp-port", 25, "port to use when connecting to the SMTP server")
+	smtpUsername       = flag.String("smtp-user", "", "username to supply to the SMTP server")
+	smtpPassword       = flag.String("smtp-pass", "", "password to supply to the SMTP server")
+	sessionPath        = flag.String("session-path", "./sessions.db", "Path to persist session information")
+	enableCaptcha      = flag.Bool("enable-captcha", false, "Whether to require captchas to be completed")
+	enableHealthCheck  = flag.Bool("enable-health-check", false, "Whether to expose health checks at /_health")
+	port               = flag.Int("port", 8080, "port to listen on for connections")
+	csrfTrustedOrigins = flag.String("csrf-trusted-origins", "", "Comma-separated list of trusted origins to bypass CSRF checks")
 
 	formTemplate    *template.Template
 	captchaTemplate *template.Template
@@ -67,9 +65,7 @@ func sendMail(replyTo, message string) bool {
 func handleSubmit(rw http.ResponseWriter, req *http.Request) {
 	body := ""
 	for k, v := range req.Form {
-		if k != csrfFieldName {
-			body += fmt.Sprintf("%s:\r\n%s\r\n\r\n", strings.ToUpper(k), v[0])
-		}
+		body += fmt.Sprintf("%s:\r\n%s\r\n\r\n", strings.ToUpper(k), v[0])
 	}
 
 	replyTo := req.Form.Get("from")
@@ -97,30 +93,20 @@ func showForm(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	_ = formTemplate.ExecuteTemplate(rw, "form.html", map[string]interface{}{
-		csrf.TemplateTag: csrf.TemplateField(req),
-		"params":         params,
+		"params": params,
 	})
 }
 
 func showSuccess(rw http.ResponseWriter, req *http.Request) {
 	_ = successTemplate.ExecuteTemplate(rw, "success.html", map[string]interface{}{
-		csrf.TemplateTag: csrf.TemplateField(req),
+		"csrfField": "",
 	})
 }
 
 func showFailure(rw http.ResponseWriter, req *http.Request) {
 	_ = failureTemplate.ExecuteTemplate(rw, "failure.html", map[string]interface{}{
-		csrf.TemplateTag: csrf.TemplateField(req),
+		"csrfField": "",
 	})
-}
-
-func randomKey() string {
-	var runes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-	b := make([]rune, 32)
-	for i := range b {
-		b[i] = runes[rand.Intn(len(runes))]
-	}
-	return string(b)
 }
 
 func checkFlag(value string, name string) {
@@ -150,11 +136,6 @@ func main() {
 	checkFlag(*smtpServer, "SMTP server")
 	checkFlag(*smtpUsername, "SMTP username")
 	checkFlag(*smtpPassword, "SMTP password")
-
-	if len(*csrfKey) != 32 {
-		newKey := randomKey()
-		csrfKey = &newKey
-	}
 
 	db, err := bbolt.Open(*sessionPath, 0600, nil)
 	if err != nil {
@@ -197,9 +178,16 @@ func main() {
 		r.HandleFunc("GET /_health", h.Handler)
 	}
 
-	// If developing locally, you'll need to pass csrf.Secure(false) as an argument below.
-	CSRF := csrf.Protect([]byte(*csrfKey), csrf.FieldName(csrfFieldName))
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), sessionManager.LoadAndSave(CSRF(r))); err != nil {
+	protection := csrf.New()
+	trustedOrigins := strings.Split(*csrfTrustedOrigins, ",")
+	for i := range trustedOrigins {
+		if trustedOrigins[i] != "" {
+			if err := protection.AddTrustedOrigin(trustedOrigins[i]); err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), sessionManager.LoadAndSave(protection.Handler(r))); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Unable to listen on port %d: %s\n", *port, err.Error())
 	}
 }

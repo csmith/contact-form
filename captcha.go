@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/dchest/captcha"
-	"github.com/gorilla/csrf"
 	"log"
 	"net/http"
 )
@@ -28,7 +27,7 @@ func showCaptcha(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	_ = captchaTemplate.ExecuteTemplate(rw, "captcha.html", map[string]interface{}{
-		csrf.TemplateTag: csrf.TemplateField(req),
+		"csrfField": "",
 	})
 }
 

@@ -25,30 +25,30 @@ _from_, _to_, _smtp-host_, _smtp-user_, and _smtp-pass_ are required;
 other options have vaguely sensible fallbacks.
 
 ----
-  -crsf-key string
-    	CRSF key to use [CONTACT_CRSF_KEY]
+  -csrf-trusted-origins string
+    	[CONTACT_CSRF_TRUSTED_ORIGINS] Comma-separated list of trusted origins to bypass CSRF checks
   -enable-captcha
-    	Whether to require captchas to be completed [CONTACT_ENABLE_CAPTCHA]
+    	[CONTACT_ENABLE_CAPTCHA] Whether to require captchas to be completed
   -enable-health-check
-    	Whether to expose health checks at /_health [CONTACT_ENABLE_HEALTH_CHECK]
+    	[CONTACT_ENABLE_HEALTH_CHECK] Whether to expose health checks at /_health
   -from string
-    	address to send e-mail from [CONTACT_FROM]
+    	[CONTACT_FROM] address to send e-mail from
   -port int
-    	port to listen on for connections [CONTACT_PORT] (default 8080)
+    	[CONTACT_PORT] port to listen on for connections (default 8080)
   -session-path string
-        Path to persist session information [CONTACT_SESSION_PATH] (default "./sessions.db")
+    	[CONTACT_SESSION_PATH] Path to persist session information (default "./sessions.db")
   -smtp-host string
-    	SMTP server to connect to [CONTACT_SMTP_HOST]
+    	[CONTACT_SMTP_HOST] SMTP server to connect to
   -smtp-pass string
-    	password to supply to the SMTP server [CONTACT_SMTP_PASS]
+    	[CONTACT_SMTP_PASS] password to supply to the SMTP server
   -smtp-port int
-    	port to use when connecting to the SMTP server [CONTACT_SMTP_PORT] (default 25)
+    	[CONTACT_SMTP_PORT] port to use when connecting to the SMTP server (default 25)
   -smtp-user string
-    	username to supply to the SMTP server [CONTACT_SMTP_USER]
+    	[CONTACT_SMTP_USER] username to supply to the SMTP server
   -subject string
-    	e-mail subject [CONTACT_SUBJECT] (default "Contact form submission")
+    	[CONTACT_SUBJECT] e-mail subject (default "Contact form submission")
   -to string
-    	address to send e-mail to [CONTACT_TO]
+    	[CONTACT_TO] address to send e-mail to
 ----
 
 You can use any SMTP server; however I recommend using a dedicated service
@@ -62,8 +62,7 @@ be in the current working directory. The form itself is loaded from `form.html`;
 success and failure pages from `success.html` and `failure.html` respectively.
 If captcha support is enabled, the captcha page is loaded from `captcha.html`.
 Each page is loaded as a https://golang.org/pkg/html/template/[go html.template] and
-can use the templating syntax described there. Forms must contain the `{{ .csrfField }}` template field, which
-will automatically insert the CSRF token for the request.
+can use the templating syntax described there.
 
 Any query parameters passed to the form will be accessible through the `{{ .params }}` template field. The
 default template will include all parameters as hidden fields in the form.
@@ -100,8 +99,7 @@ may wish to restrict access to the URL.
 Developed by https://chameth.com[Chris Smith]; CSS heavily based on the login form in
  https://github.com/greboid/ig[ig] by https://greboid.com[Greg Holmes].
 
-Captchas are implemented using the https://github.com/dchest/captcha[dchest/captcha]
-library, CSRF protection uses the https://www.gorillatoolkit.org/[Gorilla web toolkit].
+Captchas are implemented using the https://github.com/dchest/captcha[dchest/captcha] library.
 Health checks are implemented using https://github.com/nelkinda/health-go[nelkinda/health-go].
 
 == Licence

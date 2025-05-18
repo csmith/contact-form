@@ -9,7 +9,6 @@
 <div class="page">
     <div class="form">
         <form action="submit" method="post">
-            {{ .csrfField }}
             {{-  range $k, $v := .params }}
             <input type="hidden" name="{{ $k | html }}" value="{{ $v | html }}">
             {{- end }}
