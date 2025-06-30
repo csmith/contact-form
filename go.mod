@@ -9,7 +9,7 @@ require (
 	github.com/alexedwards/scs/v2 v2.8.0
 	github.com/dchest/captcha v1.1.0
 	github.com/nelkinda/health-go v0.0.1
-	go.etcd.io/bbolt v1.4.1
+	go.etcd.io/bbolt v1.4.2
 )
 
 require (
