@@ -13,7 +13,7 @@ require (
 )
 
 require (
-	filippo.io/csrf v0.0.0-20250517103426-cfb6fbb0fbe3
+	filippo.io/csrf v0.2.1
 	github.com/csmith/envflag/v2 v2.0.0
 	github.com/csmith/slogflags v1.1.0
 )
