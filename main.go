@@ -3,15 +3,8 @@ package main
 import (
 	"context"
 	"errors"
-	"filippo.io/csrf"
 	"flag"
 	"fmt"
-	"github.com/alexedwards/scs/boltstore"
-	"github.com/alexedwards/scs/v2"
-	"github.com/csmith/envflag/v2"
-	"github.com/csmith/slogflags"
-	"github.com/nelkinda/health-go"
-	"go.etcd.io/bbolt"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -22,6 +15,14 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"filippo.io/csrf"
+	"github.com/alexedwards/scs/boltstore"
+	"github.com/alexedwards/scs/v2"
+	"github.com/csmith/envflag/v2"
+	"github.com/csmith/slogflags"
+	"github.com/nelkinda/health-go"
+	"go.etcd.io/bbolt"
 )
 
 const (
@@ -166,6 +167,12 @@ func sendMail(replyTo, message string) bool {
 }
 
 func handleSubmit(rw http.ResponseWriter, req *http.Request) {
+	if err := req.ParseForm(); err != nil {
+		log.Warn("Unable to parse form", "error", err)
+		rw.Header().Add("Location", "failure")
+		rw.WriteHeader(http.StatusSeeOther)
+	}
+
 	body := ""
 	for k, v := range req.Form {
 		body += fmt.Sprintf("%s:\r\n%s\r\n\r\n", strings.ToUpper(k), v[0])
@@ -176,7 +183,7 @@ func handleSubmit(rw http.ResponseWriter, req *http.Request) {
 	replyTo = strings.ReplaceAll(replyTo, "\r", "")
 
 	if *enableCaptcha {
-		log.Debug("Form submitted, presenting captcha", "replyTo", replyTo, "remoteAddr")
+		log.Debug("Form submitted, presenting captcha", "replyTo", replyTo)
 		beginCaptcha(rw, req, body, replyTo)
 	} else if sendMail(replyTo, body) {
 		log.Debug("Form submitted successfully, redirecting to success handler", "replyTo", replyTo)

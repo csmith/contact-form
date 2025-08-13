@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/dchest/captcha"
 	"net/http"
+
+	"github.com/dchest/captcha"
 )
 
 func beginCaptcha(rw http.ResponseWriter, req *http.Request, body string, replyTo string) {
@@ -22,8 +23,8 @@ func showCaptcha(rw http.ResponseWriter, req *http.Request) {
 
 	captchaId := sessionManager.GetString(req.Context(), captchaKey)
 	if captchaId == "" || !captcha.Reload(captchaId) {
-		log.Debug("Generating new captcha ID")
 		captchaId = captcha.New()
+		log.Debug("Generated new captcha ID", "id", captchaId)
 		sessionManager.Put(req.Context(), captchaKey, captchaId)
 	}
 
@@ -77,16 +78,23 @@ func handleSolve(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if err := req.ParseForm(); err != nil {
+		log.Warn("Unable to parse form", "error", err)
+		rw.Header().Add("Location", "failure")
+		rw.WriteHeader(http.StatusSeeOther)
+		return
+	}
+
 	digits := req.Form.Get("captcha")
 	if !captcha.VerifyString(captchaId, digits) {
-		log.Debug("Client presented incorrect captcha solution")
+		log.Debug("Client presented incorrect captcha solution", "id", captchaId)
 		hc.recordCaptchaSuccess()
 		rw.Header().Add("Location", "failure")
 		rw.WriteHeader(http.StatusSeeOther)
 		return
 	}
 
-	log.Debug("Client presented correct captcha solution, sending mail")
+	log.Debug("Client presented correct captcha solution, sending mail", "id", captchaId)
 	hc.recordCaptchaSuccess()
 	if sendMail(sessionManager.PopString(req.Context(), replyToKey), sessionManager.PopString(req.Context(), bodyKey)) {
 		rw.Header().Add("Location", "success")

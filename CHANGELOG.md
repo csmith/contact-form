@@ -1,6 +1,17 @@
 # Changelog
 
-## Unreleased
+## 2.1.1 - 2025-08-13
+
+### Bug fixes
+
+- Fixed errors when attempting to solve captchas. This was a result of switching
+  the CSRF implementation in v2.1.0; the old implementation implicitly parsed
+  forms, the new one didn't, and the captcha behaviour relied on this.
+
+### Other changes
+
+- Dependency updates
+- Improved a couple of log lines
 
 ## 2.1.0 - 2025-05-18
 
