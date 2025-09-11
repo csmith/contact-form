@@ -37,6 +37,22 @@ other options have vaguely sensible fallbacks.
     	[CONTACT_LOG_FORMAT] Format of log output ('json' or 'text') (default "text")
   -log.level string
     	[CONTACT_LOG_LEVEL] Lowest level of logs that should be output
+  -oopspam-apikey string
+    	[CONTACT_OOPSPAM_APIKEY] API key to use for OOPSpam (disabled if not set)
+  -oopspam-block-dc
+    	[CONTACT_OOPSPAM_BLOCK_DC] Whether to block messages routed from data centre IP ranges
+  -oopspam-block-temp-email
+    	[CONTACT_OOPSPAM_BLOCK_TEMP_EMAIL] Whether to block temporary email addresses
+  -oopspam-block-vpn
+    	[CONTACT_OOPSPAM_BLOCK_VPN] Whether to block messages routed via VPN providers
+  -oopspam-check-for-length
+    	[CONTACT_OOPSPAM_CHECK_FOR_LENGTH] Whether to check minimum message length (default true)
+  -oopspam-error-handler string
+    	[CONTACT_OOPSPAM_ERROR_HANDLER] What to do if OOPSpam check errors (captcha, allow, deny) (default "deny")
+  -oopspam-spam-handler string
+    	[CONTACT_OOPSPAM_SPAM_HANDLER] What to do if OOPSpam detects spam (captcha, allow, deny) (default "deny")
+  -oopspam-url-friendly
+    	[CONTACT_OOPSPAM_URL_FRIENDLY] Whether to reduce the impact of links on spam score
   -port int
     	[CONTACT_PORT] port to listen on for connections (default 8080)
   -session-path string
@@ -59,9 +75,6 @@ You can use any SMTP server; however I recommend using a dedicated service
 such as https://www.mailgun.com/[mailgun] or
 https://aws.amazon.com/ses/[AWS SES], both of which you can access over SMTP.
 
-If you enable `DEBUG` level logging, be aware that e-mail addresses will be
-logged.
-
 == Templates
 
 All templates are loaded from the `templates` directory, which is expected to
@@ -74,7 +87,8 @@ can use the templating syntax described there.
 Any query parameters passed to the form will be accessible through the `{{ .params }}` template field. The
 default template will include all parameters as hidden fields in the form.
 
-If the form contains a field named `from`, it will be used in the `Reply-To` header. Otherwise, no
+If the form contains a field named `from`, it will be used in the `Reply-To` header,
+and included in log messages to help trace issues. Otherwise, no
 special processing is applied to any field; they are all simply written out to the message body.
 No server-side validation is performed.
 
@@ -89,6 +103,29 @@ default templates.
 
 When running from the docker image, static files are stored in `/static`; you can
 replace this with a volume to supply custom files.
+
+== OOPSpam
+
+Optional https://www.oopspam.com/[OOPSpam] integration can be enabled by setting
+the `oopspam-apikey` flag (or `CONTACT_OOPSPAM_APIKEY` env var). By default if
+the request to OOPSpam fails (e.g. because of server issues, or exceeding the
+rate limits) the contact attempt will be failed. You can change this with the
+`oopspam-error-handler` flag (or `CONTACT_OOPSPAM_ERROR_HANDLER` env var):
+`allow` will just send the message, `captcha` will present a captcha challenge.
+
+Messages with a score greater than or equal to 3 are considered spam, and
+the behaviour in the `oopspam-spam-handler` flag (or
+`CONTACT_OOPSPAM_SPAM_HANDLER` env var) will determine what happens next. The
+default behaviour is to deny the request.
+
+The `enable-captcha` setting is ignored if OOPSpam is enabled. Captchas will
+be presented if the error handler or spam handler has the value `captcha`
+otherwise they won't be.
+
+If present, the `X-Forwarded-For` header will be used to determine the client's
+IP address. This is not validated in any way. It is assumed that the contact
+for is hosted behind a TLS-terminating proxy that will ensure this header is
+passed on with valid data.
 
 == Health checks
 

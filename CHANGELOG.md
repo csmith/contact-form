@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.0 - 2025-09-11
+
+### Major changes
+
+- Added support for spam checking via OOPSpam
+
 ## 2.1.1 - 2025-08-13
 
 ### Bug fixes

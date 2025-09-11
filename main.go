@@ -33,18 +33,26 @@ const (
 )
 
 var (
-	fromAddress        = flag.String("from", "", "address to send e-mail from")
-	toAddress          = flag.String("to", "", "address to send e-mail to")
-	subject            = flag.String("subject", "Contact form submission", "e-mail subject")
-	smtpServer         = flag.String("smtp-host", "", "SMTP server to connect to")
-	smtpPort           = flag.Int("smtp-port", 25, "port to use when connecting to the SMTP server")
-	smtpUsername       = flag.String("smtp-user", "", "username to supply to the SMTP server")
-	smtpPassword       = flag.String("smtp-pass", "", "password to supply to the SMTP server")
-	sessionPath        = flag.String("session-path", "./sessions.db", "Path to persist session information")
-	enableCaptcha      = flag.Bool("enable-captcha", false, "Whether to require captchas to be completed")
-	enableHealthCheck  = flag.Bool("enable-health-check", false, "Whether to expose health checks at /_health")
-	port               = flag.Int("port", 8080, "port to listen on for connections")
-	csrfTrustedOrigins = flag.String("csrf-trusted-origins", "", "Comma-separated list of trusted origins to bypass CSRF checks")
+	fromAddress           = flag.String("from", "", "address to send e-mail from")
+	toAddress             = flag.String("to", "", "address to send e-mail to")
+	subject               = flag.String("subject", "Contact form submission", "e-mail subject")
+	smtpServer            = flag.String("smtp-host", "", "SMTP server to connect to")
+	smtpPort              = flag.Int("smtp-port", 25, "port to use when connecting to the SMTP server")
+	smtpUsername          = flag.String("smtp-user", "", "username to supply to the SMTP server")
+	smtpPassword          = flag.String("smtp-pass", "", "password to supply to the SMTP server")
+	sessionPath           = flag.String("session-path", "./sessions.db", "Path to persist session information")
+	enableCaptcha         = flag.Bool("enable-captcha", false, "Whether to require captchas to be completed")
+	oopspamApiKey         = flag.String("oopspam-apikey", "", "API key to use for OOPSpam (disabled if not set)")
+	oopspamErrorHandler   = flag.String("oopspam-error-handler", "deny", "What to do if OOPSpam check errors (captcha, allow, deny)")
+	oopspamSpamHandler    = flag.String("oopspam-spam-handler", "deny", "What to do if OOPSpam detects spam (captcha, allow, deny)")
+	oopspamBlockTempEmail = flag.Bool("oopspam-block-temp-email", false, "Whether to block temporary email addresses")
+	oopspamBlockVpn       = flag.Bool("oopspam-block-vpn", false, "Whether to block messages routed via VPN providers")
+	oopspamBlockDc        = flag.Bool("oopspam-block-dc", false, "Whether to block messages routed from data centre IP ranges")
+	oopspamCheckForLength = flag.Bool("oopspam-check-for-length", true, "Whether to check minimum message length")
+	oopspamUrlFriendly    = flag.Bool("oopspam-url-friendly", false, "Whether to reduce the impact of links on spam score")
+	enableHealthCheck     = flag.Bool("enable-health-check", false, "Whether to expose health checks at /_health")
+	port                  = flag.Int("port", 8080, "port to listen on for connections")
+	csrfTrustedOrigins    = flag.String("csrf-trusted-origins", "", "Comma-separated list of trusted origins to bypass CSRF checks")
 
 	formTemplate    *template.Template
 	captchaTemplate *template.Template
@@ -182,10 +190,19 @@ func handleSubmit(rw http.ResponseWriter, req *http.Request) {
 	replyTo = strings.ReplaceAll(replyTo, "\n", "")
 	replyTo = strings.ReplaceAll(replyTo, "\r", "")
 
-	if *enableCaptcha {
+	if *oopspamApiKey != "" {
+		log.Debug("Form submitted, checking for spam", "replyTo", replyTo)
+		checkSpam(rw, req, body, replyTo)
+	} else if *enableCaptcha {
 		log.Debug("Form submitted, presenting captcha", "replyTo", replyTo)
 		beginCaptcha(rw, req, body, replyTo)
-	} else if sendMail(replyTo, body) {
+	} else {
+		trySendMail(rw, replyTo, body)
+	}
+}
+
+func trySendMail(rw http.ResponseWriter, replyTo, body string) {
+	if sendMail(replyTo, body) {
 		log.Debug("Form submitted successfully, redirecting to success handler", "replyTo", replyTo)
 		rw.Header().Add("Location", "success")
 		rw.WriteHeader(http.StatusSeeOther)
