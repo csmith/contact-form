@@ -1,8 +1,8 @@
 filippo.io/csrf v0.2.1 h1:MdV/y9xOECwJko48lPkH9NaYNpZ6kYfaNlgnZk4k6Uo=
 filippo.io/csrf v0.2.1/go.mod h1:eVfdeENlqr/ErpNx4E5I6a11I1aP0WL/PPkzKD1d960=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/alexedwards/scs/boltstore v0.0.0-20240316134038-7e11d57e8885 h1:TYMHgBunP/91bUIkKN00NSC1XjQLuztqEEnjV1fcLL4=
-github.com/alexedwards/scs/boltstore v0.0.0-20240316134038-7e11d57e8885/go.mod h1:nnGhSqQA6m7r6IH0hidEyb/aDFXQD/K+PwVShJWfKKc=
+github.com/alexedwards/scs/boltstore v0.0.0-20251002162104-209de6e426de h1:deuu1ljnlilkF0IhOuDBjaDuzsX2NN1H7oZ7XEnrvhE=
+github.com/alexedwards/scs/boltstore v0.0.0-20251002162104-209de6e426de/go.mod h1:nnGhSqQA6m7r6IH0hidEyb/aDFXQD/K+PwVShJWfKKc=
 github.com/alexedwards/scs/v2 v2.9.0 h1:xa05mVpwTBm1iLeTMNFfAWpKUm4fXAW7CeAViqBVS90=
 github.com/alexedwards/scs/v2 v2.9.0/go.mod h1:ToaROZxyKukJKT/xLcVQAChi5k6+Pn1Gvmdl7h3RRj8=
 github.com/antchfx/xmlquery v1.2.4/go.mod h1:KQQuESaxSlqugE2ZBcM/qn+ebIpt+d+4Xx7YcSGAIrM=
