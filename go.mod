@@ -2,7 +2,7 @@ module contact-form
 
 go 1.24.2
 
-toolchain go1.25.6
+toolchain go1.25.7
 
 require (
 	github.com/alexedwards/scs/boltstore v0.0.0-20251002162104-209de6e426de
