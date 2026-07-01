@@ -1,6 +1,6 @@
 module contact-form
 
-go 1.24.2
+go 1.25.0
 
 toolchain go1.26.4
 
@@ -9,7 +9,7 @@ require (
 	github.com/alexedwards/scs/v2 v2.9.0
 	github.com/dchest/captcha v1.1.0
 	github.com/nelkinda/health-go v0.0.1
-	go.etcd.io/bbolt v1.4.3
+	go.etcd.io/bbolt v1.5.0
 )
 
 require (
@@ -20,5 +20,5 @@ require (
 
 require (
 	github.com/nelkinda/http-go v0.0.1 // indirect
-	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 )
