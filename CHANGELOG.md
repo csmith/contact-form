@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.2.1 - 2026-10-20
+
+### Bug fixes
+
+- Updated to Go 1.27.3 and a new container base image, which no longer trust
+  the compromised eMudhra intermediate CA
+
+### Other changes
+
+- The container image now uses `ghcr.io/greboid/dockerbase/nonroot` instead of
+  `gcr.io/distroless/base:nonroot`
+
 ## 2.2.0 - 2025-09-11
 
 ### Major changes
