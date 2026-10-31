@@ -96,7 +96,7 @@ func handleSpamFailure(rw http.ResponseWriter, req *http.Request, body string, r
 		beginCaptcha(rw, req, body, replyTo)
 	case "allow":
 		log.Info("Sending message due to oopspam policy", "replyTo", replyTo)
-		trySendMail(rw, body, replyTo)
+		trySendMail(rw, replyTo, body)
 	default:
 		log.Error("Unknown oopspam handler behaviour", "replyTo", replyTo, "handler", handler)
 		rw.Header().Add("Location", "failure")

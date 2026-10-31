@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.2.2 - 2026-10-31
+
+### Bug fixes
+
+- Fixed messages allowed by the OOPSpam `allow` policy being sent with the
+  message body in the `Reply-to` header and the reply-to address as the body.
+
 ## 2.2.1 - 2026-10-20
 
 ### Bug fixes
