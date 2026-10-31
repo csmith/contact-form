@@ -26,28 +26,35 @@ type OopspamRequest struct {
 }
 
 type OopspamResponse struct {
-	Score   int                    `json:"score"`
-	Details map[string]interface{} `json:"details"`
+	Score   int            `json:"score"`
+	Details map[string]any `json:"details"`
 }
 
 func checkSpam(rw http.ResponseWriter, req *http.Request, body string, replyTo string) {
-	payload, err := json.Marshal(&OopspamRequest{
-		Content:        body,
-		SenderIp:       senderIp(req),
-		Email:          replyTo,
-		BlockTempEmail: *oopspamBlockTempEmail,
-		BlockVpn:       *oopspamBlockVpn,
-		BlockDc:        *oopspamBlockDc,
-		CheckForLength: *oopspamCheckForLength,
-		UrlFriendly:    *oopspamUrlFriendly,
-	})
+	payload, err := json.Marshal(
+		&OopspamRequest{
+			Content:        body,
+			SenderIp:       senderIp(req),
+			Email:          replyTo,
+			BlockTempEmail: *oopspamBlockTempEmail,
+			BlockVpn:       *oopspamBlockVpn,
+			BlockDc:        *oopspamBlockDc,
+			CheckForLength: *oopspamCheckForLength,
+			UrlFriendly:    *oopspamUrlFriendly,
+		},
+	)
 	if err != nil {
 		log.Error("Failed to marshal oopspam request", "replyTo", replyTo, "err", err)
 		handleSpamFailure(rw, req, body, replyTo, *oopspamErrorHandler)
 		return
 	}
 
-	spamReq, err := http.NewRequest(http.MethodPost, oopspamUrl, bytes.NewReader(payload))
+	spamReq, err := http.NewRequestWithContext(
+		req.Context(),
+		http.MethodPost,
+		oopspamUrl,
+		bytes.NewReader(payload),
+	)
 	if err != nil {
 		log.Error("Failed to construct oopspam request", "replyTo", replyTo, "err", err)
 		handleSpamFailure(rw, req, body, replyTo, *oopspamErrorHandler)
@@ -77,7 +84,15 @@ func checkSpam(rw http.ResponseWriter, req *http.Request, body string, replyTo s
 		return
 	}
 
-	log.Info("Spam check result from oopspam", "score", spamResult.Score, "details", spamResult.Details, "replyTo", replyTo)
+	log.Info(
+		"Spam check result from oopspam",
+		"score",
+		spamResult.Score,
+		"details",
+		spamResult.Details,
+		"replyTo",
+		replyTo,
+	)
 	if spamResult.Score >= oopspamThreshold {
 		handleSpamFailure(rw, req, body, replyTo, *oopspamSpamHandler)
 	} else {

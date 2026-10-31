@@ -33,26 +33,42 @@ const (
 )
 
 var (
-	fromAddress           = flag.String("from", "", "address to send e-mail from")
-	toAddress             = flag.String("to", "", "address to send e-mail to")
-	subject               = flag.String("subject", "Contact form submission", "e-mail subject")
-	smtpServer            = flag.String("smtp-host", "", "SMTP server to connect to")
-	smtpPort              = flag.Int("smtp-port", 25, "port to use when connecting to the SMTP server")
-	smtpUsername          = flag.String("smtp-user", "", "username to supply to the SMTP server")
-	smtpPassword          = flag.String("smtp-pass", "", "password to supply to the SMTP server")
-	sessionPath           = flag.String("session-path", "./sessions.db", "Path to persist session information")
-	enableCaptcha         = flag.Bool("enable-captcha", false, "Whether to require captchas to be completed")
-	oopspamApiKey         = flag.String("oopspam-apikey", "", "API key to use for OOPSpam (disabled if not set)")
-	oopspamErrorHandler   = flag.String("oopspam-error-handler", "deny", "What to do if OOPSpam check errors (captcha, allow, deny)")
-	oopspamSpamHandler    = flag.String("oopspam-spam-handler", "deny", "What to do if OOPSpam detects spam (captcha, allow, deny)")
+	fromAddress         = flag.String("from", "", "address to send e-mail from")
+	toAddress           = flag.String("to", "", "address to send e-mail to")
+	subject             = flag.String("subject", "Contact form submission", "e-mail subject")
+	smtpServer          = flag.String("smtp-host", "", "SMTP server to connect to")
+	smtpPort            = flag.Int("smtp-port", 25, "port to use when connecting to the SMTP server")
+	smtpUsername        = flag.String("smtp-user", "", "username to supply to the SMTP server")
+	smtpPassword        = flag.String("smtp-pass", "", "password to supply to the SMTP server")
+	sessionPath         = flag.String("session-path", "./sessions.db", "Path to persist session information")
+	enableCaptcha       = flag.Bool("enable-captcha", false, "Whether to require captchas to be completed")
+	oopspamApiKey       = flag.String("oopspam-apikey", "", "API key to use for OOPSpam (disabled if not set)")
+	oopspamErrorHandler = flag.String(
+		"oopspam-error-handler",
+		"deny",
+		"What to do if OOPSpam check errors (captcha, allow, deny)",
+	)
+	oopspamSpamHandler = flag.String(
+		"oopspam-spam-handler",
+		"deny",
+		"What to do if OOPSpam detects spam (captcha, allow, deny)",
+	)
 	oopspamBlockTempEmail = flag.Bool("oopspam-block-temp-email", false, "Whether to block temporary email addresses")
 	oopspamBlockVpn       = flag.Bool("oopspam-block-vpn", false, "Whether to block messages routed via VPN providers")
-	oopspamBlockDc        = flag.Bool("oopspam-block-dc", false, "Whether to block messages routed from data centre IP ranges")
+	oopspamBlockDc        = flag.Bool(
+		"oopspam-block-dc",
+		false,
+		"Whether to block messages routed from data centre IP ranges",
+	)
 	oopspamCheckForLength = flag.Bool("oopspam-check-for-length", true, "Whether to check minimum message length")
 	oopspamUrlFriendly    = flag.Bool("oopspam-url-friendly", false, "Whether to reduce the impact of links on spam score")
 	enableHealthCheck     = flag.Bool("enable-health-check", false, "Whether to expose health checks at /_health")
 	port                  = flag.Int("port", 8080, "port to listen on for connections")
-	csrfTrustedOrigins    = flag.String("csrf-trusted-origins", "", "Comma-separated list of trusted origins to bypass CSRF checks")
+	csrfTrustedOrigins    = flag.String(
+		"csrf-trusted-origins",
+		"",
+		"Comma-separated list of trusted origins to bypass CSRF checks",
+	)
 
 	formTemplate    *template.Template
 	captchaTemplate *template.Template
@@ -114,8 +130,7 @@ func main() {
 	// Health checks
 	if *enableHealthCheck {
 		log.Debug("Registering health check handler")
-		h := health.New(health.Health{Version: "1"}, hc)
-		r.HandleFunc("GET /_health", h.Handler)
+		r.HandleFunc("GET /_health", health.New(health.Health{Version: "1"}, hc).Handler)
 	}
 
 	protection := csrf.New()
@@ -162,9 +177,22 @@ func main() {
 
 func sendMail(replyTo, message string) bool {
 	auth := smtp.PlainAuth("", *smtpUsername, *smtpPassword, *smtpServer)
-	body := fmt.Sprintf("To: %s\r\nSubject: %s\r\nReply-to: %s\r\nFrom: Online contact form <%s>\r\n\r\n%s\r\n", *toAddress, *subject, replyTo, *fromAddress, message)
+	body := fmt.Sprintf(
+		"To: %s\r\nSubject: %s\r\nReply-to: %s\r\nFrom: Online contact form <%s>\r\n\r\n%s\r\n",
+		*toAddress,
+		*subject,
+		replyTo,
+		*fromAddress,
+		message,
+	)
 	log.Debug("Sending e-mail message", "from", *fromAddress, "to", *toAddress, "subject", *subject, "replyTo", replyTo)
-	err := smtp.SendMail(fmt.Sprintf("%s:%d", *smtpServer, *smtpPort), auth, *fromAddress, []string{*toAddress}, []byte(body))
+	err := smtp.SendMail(
+		fmt.Sprintf("%s:%d", *smtpServer, *smtpPort),
+		auth,
+		*fromAddress,
+		[]string{*toAddress},
+		[]byte(body),
+	)
 	if err != nil {
 		log.Error("Unable to send e-mail", "error", err)
 		hc.recordMailFailure(err)
@@ -181,9 +209,9 @@ func handleSubmit(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusSeeOther)
 	}
 
-	body := ""
+	var body strings.Builder
 	for k, v := range req.Form {
-		body += fmt.Sprintf("%s:\r\n%s\r\n\r\n", strings.ToUpper(k), v[0])
+		_, _ = fmt.Fprintf(&body, "%s:\r\n%s\r\n\r\n", strings.ToUpper(k), v[0])
 	}
 
 	replyTo := req.Form.Get("from")
@@ -192,12 +220,12 @@ func handleSubmit(rw http.ResponseWriter, req *http.Request) {
 
 	if *oopspamApiKey != "" {
 		log.Debug("Form submitted, checking for spam", "replyTo", replyTo)
-		checkSpam(rw, req, body, replyTo)
+		checkSpam(rw, req, body.String(), replyTo)
 	} else if *enableCaptcha {
 		log.Debug("Form submitted, presenting captcha", "replyTo", replyTo)
-		beginCaptcha(rw, req, body, replyTo)
+		beginCaptcha(rw, req, body.String(), replyTo)
 	} else {
-		trySendMail(rw, replyTo, body)
+		trySendMail(rw, replyTo, body.String())
 	}
 }
 
@@ -222,21 +250,27 @@ func showForm(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	_ = formTemplate.ExecuteTemplate(rw, "form.html", map[string]interface{}{
-		"params": params,
-	})
+	_ = formTemplate.ExecuteTemplate(
+		rw,
+		"form.html",
+		map[string]any{"params": params},
+	)
 }
 
 func showSuccess(rw http.ResponseWriter, req *http.Request) {
-	_ = successTemplate.ExecuteTemplate(rw, "success.html", map[string]interface{}{
-		"csrfField": "",
-	})
+	_ = successTemplate.ExecuteTemplate(
+		rw,
+		"success.html",
+		map[string]any{"csrfField": ""},
+	)
 }
 
 func showFailure(rw http.ResponseWriter, req *http.Request) {
-	_ = failureTemplate.ExecuteTemplate(rw, "failure.html", map[string]interface{}{
-		"csrfField": "",
-	})
+	_ = failureTemplate.ExecuteTemplate(
+		rw,
+		"failure.html",
+		map[string]any{"csrfField": ""},
+	)
 }
 
 func checkFlag(value string, name string) {

@@ -28,9 +28,11 @@ func showCaptcha(rw http.ResponseWriter, req *http.Request) {
 		sessionManager.Put(req.Context(), captchaKey, captchaId)
 	}
 
-	_ = captchaTemplate.ExecuteTemplate(rw, "captcha.html", map[string]interface{}{
-		"csrfField": "",
-	})
+	_ = captchaTemplate.ExecuteTemplate(
+		rw,
+		"captcha.html",
+		map[string]any{"csrfField": ""},
+	)
 }
 
 func writeCaptchaImage(rw http.ResponseWriter, req *http.Request) {
