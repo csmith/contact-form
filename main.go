@@ -207,6 +207,7 @@ func handleSubmit(rw http.ResponseWriter, req *http.Request) {
 		log.Warn("Unable to parse form", "error", err)
 		rw.Header().Add("Location", "failure")
 		rw.WriteHeader(http.StatusSeeOther)
+		return
 	}
 
 	var body strings.Builder
