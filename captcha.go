@@ -78,6 +78,7 @@ func handleSolve(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	req.Body = http.MaxBytesReader(rw, req.Body, maxRequestBytes)
 	if err := req.ParseForm(); err != nil {
 		log.Warn("Unable to parse form", "error", err)
 		redirect(rw, "failure")

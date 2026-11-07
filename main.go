@@ -30,6 +30,10 @@ const (
 	bodyKey     = "body"
 	replyToKey  = "replyTo"
 	captchaKey  = "captchaId"
+
+	// maxRequestBytes caps form submissions, which are otherwise only limited
+	// by net/http's 10 MB default and may be persisted in the session store.
+	maxRequestBytes = 64 << 10
 )
 
 var (
@@ -203,6 +207,7 @@ func sendMail(replyTo, message string) bool {
 }
 
 func handleSubmit(rw http.ResponseWriter, req *http.Request) {
+	req.Body = http.MaxBytesReader(rw, req.Body, maxRequestBytes)
 	if err := req.ParseForm(); err != nil {
 		log.Warn("Unable to parse form", "error", err)
 		redirect(rw, "failure")
