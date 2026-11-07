@@ -21,7 +21,6 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/csmith/envflag/v2"
 	"github.com/csmith/slogflags"
-	"github.com/nelkinda/health-go"
 	"go.etcd.io/bbolt"
 )
 
@@ -134,7 +133,7 @@ func main() {
 	// Health checks
 	if *enableHealthCheck {
 		log.Debug("Registering health check handler")
-		r.HandleFunc("GET /_health", health.New(health.Health{Version: "1"}, hc).Handler)
+		r.Handle("GET /_health", hc)
 	}
 
 	protection := csrf.New()
@@ -199,10 +198,10 @@ func sendMail(replyTo, message string) bool {
 	)
 	if err != nil {
 		log.Error("Unable to send e-mail", "error", err)
-		hc.recordMailFailure(err)
+		hc.mail = err
 		return false
 	}
-	hc.recordMailSuccess()
+	hc.mail = nil
 	return true
 }
 

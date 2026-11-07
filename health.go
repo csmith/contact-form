@@ -1,56 +1,33 @@
 package main
 
 import (
-	"github.com/nelkinda/health-go"
+	"encoding/json"
 	"net/http"
-	"time"
 )
 
 type healthCheck struct {
 	mail, captcha error
 }
 
-func (h *healthCheck) HealthChecks() map[string][]health.Checks {
-	now := time.Now().UTC().Format(time.RFC3339Nano)
-	errorCheck := func(err error) health.Checks {
-		if err == nil {
-			return health.Checks{
-				ComponentType: "component",
-				Status:        health.Pass,
-				Time:          now,
-			}
-		} else {
-			return health.Checks{
-				ComponentType: "component",
-				Status:        health.Fail,
-				Time:          now,
-				Output:        err.Error(),
-			}
+func (h *healthCheck) ServeHTTP(rw http.ResponseWriter, _ *http.Request) {
+	type response struct {
+		Status string            `json:"status"`
+		Errors map[string]string `json:"errors,omitempty"`
+	}
+
+	res := response{Status: "pass", Errors: map[string]string{}}
+	for name, err := range map[string]error{"mail": h.mail, "captcha": h.captcha} {
+		if err != nil {
+			res.Errors[name] = err.Error()
 		}
 	}
 
-	return map[string][]health.Checks{
-		"mail":    {errorCheck(h.mail)},
-		"captcha": {errorCheck(h.captcha)},
+	rw.Header().Set("Content-Type", "application/json")
+	if len(res.Errors) > 0 {
+		res.Status = "fail"
+		rw.WriteHeader(http.StatusServiceUnavailable)
 	}
-}
-
-func (*healthCheck) AuthorizeHealth(*http.Request) bool {
-	return true
-}
-
-func (h *healthCheck) recordMailFailure(err error) {
-	h.mail = err
-}
-
-func (h *healthCheck) recordMailSuccess() {
-	h.mail = nil
-}
-
-func (h *healthCheck) recordCaptchaError(err error) {
-	h.captcha = err
-}
-
-func (h *healthCheck) recordCaptchaSuccess() {
-	h.captcha = nil
+	if err := json.NewEncoder(rw).Encode(res); err != nil {
+		log.Warn("Unable to write health check response", "error", err)
+	}
 }

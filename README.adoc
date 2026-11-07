@@ -130,9 +130,9 @@ passed on with valid data.
 == Health checks
 
 If the `-enable-health-check` flag is present, a healthcheck endpoint will be exposed at `/_health`.
-This implements the https://tools.ietf.org/id/draft-inadarei-api-health-check-04.html[draft-inadarei-api-health-check-04]
-specification. Any application error that occurs when sending a mail or generating a captcha will
-result in a failing health check until the same operation succeeds again.
+It responds with `200 OK` when healthy, or `503 Service Unavailable` with the error messages
+in a JSON body if not. Any application error that occurs when sending a mail or generating a
+captcha will result in a failing health check until the same operation succeeds again.
 
 Note that the health check exposes error messages, which could potentially contain information
 about the configuration of the service or parts of messages being sent. If this is a concern you
@@ -144,7 +144,6 @@ Developed by https://chameth.com[Chris Smith]; CSS heavily based on the login fo
  https://github.com/greboid/ig[ig] by https://greboid.com[Greg Holmes].
 
 Captchas are implemented using the https://github.com/dchest/captcha[dchest/captcha] library.
-Health checks are implemented using https://github.com/nelkinda/health-go[nelkinda/health-go].
 
 == Licence
 

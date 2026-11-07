@@ -43,12 +43,12 @@ func writeCaptchaImage(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Cache-Control", "no-cache")
 	rw.Header().Set("Content-Type", "image/png")
 	if err := captcha.WriteImage(rw, captchaId, captcha.StdWidth, captcha.StdHeight); err != nil {
-		hc.recordCaptchaError(err)
+		hc.captcha = err
 		log.Error("Unable to generate image captcha", "error", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	hc.recordCaptchaSuccess()
+	hc.captcha = nil
 }
 
 func writeCaptchaAudio(rw http.ResponseWriter, req *http.Request) {
@@ -62,12 +62,12 @@ func writeCaptchaAudio(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Content-Type", "audio/wav")
 	rw.Header().Set("Content-Disposition", "attachment")
 	if err := captcha.WriteAudio(rw, captchaId, "en"); err != nil {
-		hc.recordCaptchaError(err)
+		hc.captcha = err
 		log.Error("Unable to generate audio captcha", "error", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	hc.recordCaptchaSuccess()
+	hc.captcha = nil
 }
 
 func handleSolve(rw http.ResponseWriter, req *http.Request) {
@@ -88,12 +88,12 @@ func handleSolve(rw http.ResponseWriter, req *http.Request) {
 	digits := req.Form.Get("captcha")
 	if !captcha.VerifyString(captchaId, digits) {
 		log.Debug("Client presented incorrect captcha solution", "id", captchaId)
-		hc.recordCaptchaSuccess()
+		hc.captcha = nil
 		redirect(rw, "failure")
 		return
 	}
 
 	log.Debug("Client presented correct captcha solution, sending mail", "id", captchaId)
-	hc.recordCaptchaSuccess()
+	hc.captcha = nil
 	trySendMail(rw, sessionManager.PopString(req.Context(), replyToKey), sessionManager.PopString(req.Context(), bodyKey))
 }
