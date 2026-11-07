@@ -104,8 +104,7 @@ func handleSpamFailure(rw http.ResponseWriter, req *http.Request, body string, r
 	switch handler {
 	case "deny":
 		log.Info("Failing request due to oopspam policy", "replyTo", replyTo)
-		rw.Header().Add("Location", "failure")
-		rw.WriteHeader(http.StatusSeeOther)
+		redirect(rw, "failure")
 	case "captcha":
 		log.Info("Starting captcha due to oopspam policy", "replyTo", replyTo)
 		beginCaptcha(rw, req, body, replyTo)
@@ -114,8 +113,7 @@ func handleSpamFailure(rw http.ResponseWriter, req *http.Request, body string, r
 		trySendMail(rw, replyTo, body)
 	default:
 		log.Error("Unknown oopspam handler behaviour", "replyTo", replyTo, "handler", handler)
-		rw.Header().Add("Location", "failure")
-		rw.WriteHeader(http.StatusSeeOther)
+		redirect(rw, "failure")
 	}
 }
 

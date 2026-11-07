@@ -9,15 +9,13 @@ import (
 func beginCaptcha(rw http.ResponseWriter, req *http.Request, body string, replyTo string) {
 	sessionManager.Put(req.Context(), bodyKey, body)
 	sessionManager.Put(req.Context(), replyToKey, replyTo)
-	rw.Header().Add("Location", "captcha")
-	rw.WriteHeader(http.StatusSeeOther)
+	redirect(rw, "captcha")
 }
 
 func showCaptcha(rw http.ResponseWriter, req *http.Request) {
 	if !sessionManager.Exists(req.Context(), bodyKey) || !sessionManager.Exists(req.Context(), replyToKey) {
 		log.Debug("Attempted to show captcha but session is in bad state. Redirecting to failure.")
-		rw.Header().Add("Location", "failure")
-		rw.WriteHeader(http.StatusSeeOther)
+		redirect(rw, "failure")
 		return
 	}
 
@@ -82,8 +80,7 @@ func handleSolve(rw http.ResponseWriter, req *http.Request) {
 
 	if err := req.ParseForm(); err != nil {
 		log.Warn("Unable to parse form", "error", err)
-		rw.Header().Add("Location", "failure")
-		rw.WriteHeader(http.StatusSeeOther)
+		redirect(rw, "failure")
 		return
 	}
 
@@ -91,18 +88,11 @@ func handleSolve(rw http.ResponseWriter, req *http.Request) {
 	if !captcha.VerifyString(captchaId, digits) {
 		log.Debug("Client presented incorrect captcha solution", "id", captchaId)
 		hc.recordCaptchaSuccess()
-		rw.Header().Add("Location", "failure")
-		rw.WriteHeader(http.StatusSeeOther)
+		redirect(rw, "failure")
 		return
 	}
 
 	log.Debug("Client presented correct captcha solution, sending mail", "id", captchaId)
 	hc.recordCaptchaSuccess()
-	if sendMail(sessionManager.PopString(req.Context(), replyToKey), sessionManager.PopString(req.Context(), bodyKey)) {
-		rw.Header().Add("Location", "success")
-		rw.WriteHeader(http.StatusSeeOther)
-	} else {
-		rw.Header().Add("Location", "failure")
-		rw.WriteHeader(http.StatusSeeOther)
-	}
+	trySendMail(rw, sessionManager.PopString(req.Context(), replyToKey), sessionManager.PopString(req.Context(), bodyKey))
 }

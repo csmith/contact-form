@@ -205,8 +205,7 @@ func sendMail(replyTo, message string) bool {
 func handleSubmit(rw http.ResponseWriter, req *http.Request) {
 	if err := req.ParseForm(); err != nil {
 		log.Warn("Unable to parse form", "error", err)
-		rw.Header().Add("Location", "failure")
-		rw.WriteHeader(http.StatusSeeOther)
+		redirect(rw, "failure")
 		return
 	}
 
@@ -233,12 +232,10 @@ func handleSubmit(rw http.ResponseWriter, req *http.Request) {
 func trySendMail(rw http.ResponseWriter, replyTo, body string) {
 	if sendMail(replyTo, body) {
 		log.Debug("Form submitted successfully, redirecting to success handler", "replyTo", replyTo)
-		rw.Header().Add("Location", "success")
-		rw.WriteHeader(http.StatusSeeOther)
+		redirect(rw, "success")
 	} else {
 		log.Debug("Form submitted with error, redirecting to failure handler", "replyTo", replyTo)
-		rw.Header().Add("Location", "failure")
-		rw.WriteHeader(http.StatusSeeOther)
+		redirect(rw, "failure")
 	}
 }
 
@@ -272,6 +269,12 @@ func showFailure(rw http.ResponseWriter, req *http.Request) {
 		"failure.html",
 		nil,
 	)
+}
+
+// redirect keeps relative targets relative, unlike http.Redirect.
+func redirect(rw http.ResponseWriter, target string) {
+	rw.Header().Add("Location", target)
+	rw.WriteHeader(http.StatusSeeOther)
 }
 
 func checkFlag(value string, name string) {
