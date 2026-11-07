@@ -31,7 +31,7 @@ func showCaptcha(rw http.ResponseWriter, req *http.Request) {
 	_ = captchaTemplate.ExecuteTemplate(
 		rw,
 		"captcha.html",
-		map[string]any{"csrfField": ""},
+		nil,
 	)
 }
 

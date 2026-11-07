@@ -262,7 +262,7 @@ func showSuccess(rw http.ResponseWriter, req *http.Request) {
 	_ = successTemplate.ExecuteTemplate(
 		rw,
 		"success.html",
-		map[string]any{"csrfField": ""},
+		nil,
 	)
 }
 
@@ -270,7 +270,7 @@ func showFailure(rw http.ResponseWriter, req *http.Request) {
 	_ = failureTemplate.ExecuteTemplate(
 		rw,
 		"failure.html",
-		map[string]any{"csrfField": ""},
+		nil,
 	)
 }
 
