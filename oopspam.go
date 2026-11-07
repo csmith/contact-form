@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -13,26 +14,41 @@ const (
 	oopspamThreshold = 3.0
 )
 
-type OopspamRequest struct {
-	Content  string `json:"content"`
-	SenderIp string `json:"senderIP"`
-	Email    string `json:"email"`
-
-	BlockTempEmail bool `json:"blockTempEmail"`
-	BlockVpn       bool `json:"blockVPN"`
-	BlockDc        bool `json:"blockDC"`
-	CheckForLength bool `json:"checkForLength"`
-	UrlFriendly    bool `json:"urlFriendly"`
-}
-
-type OopspamResponse struct {
-	Score   int            `json:"score"`
-	Details map[string]any `json:"details"`
-}
-
 func checkSpam(rw http.ResponseWriter, req *http.Request, body string, replyTo string) {
+	score, err := oopspamScore(req, body, replyTo)
+	if err != nil {
+		log.Error("Failed to check message with oopspam", "replyTo", replyTo, "err", err)
+		handleSpamFailure(rw, req, body, replyTo, *oopspamErrorHandler)
+		return
+	}
+
+	if score >= oopspamThreshold {
+		handleSpamFailure(rw, req, body, replyTo, *oopspamSpamHandler)
+	} else {
+		trySendMail(rw, replyTo, body)
+	}
+}
+
+func oopspamScore(req *http.Request, body string, replyTo string) (int, error) {
+	type oopspamRequest struct {
+		Content  string `json:"content"`
+		SenderIp string `json:"senderIP"`
+		Email    string `json:"email"`
+
+		BlockTempEmail bool `json:"blockTempEmail"`
+		BlockVpn       bool `json:"blockVPN"`
+		BlockDc        bool `json:"blockDC"`
+		CheckForLength bool `json:"checkForLength"`
+		UrlFriendly    bool `json:"urlFriendly"`
+	}
+
+	type oopspamResponse struct {
+		Score   int            `json:"score"`
+		Details map[string]any `json:"details"`
+	}
+
 	payload, err := json.Marshal(
-		&OopspamRequest{
+		&oopspamRequest{
 			Content:        body,
 			SenderIp:       senderIp(req),
 			Email:          replyTo,
@@ -44,9 +60,7 @@ func checkSpam(rw http.ResponseWriter, req *http.Request, body string, replyTo s
 		},
 	)
 	if err != nil {
-		log.Error("Failed to marshal oopspam request", "replyTo", replyTo, "err", err)
-		handleSpamFailure(rw, req, body, replyTo, *oopspamErrorHandler)
-		return
+		return 0, fmt.Errorf("marshal request: %w", err)
 	}
 
 	spamReq, err := http.NewRequestWithContext(
@@ -56,9 +70,7 @@ func checkSpam(rw http.ResponseWriter, req *http.Request, body string, replyTo s
 		bytes.NewReader(payload),
 	)
 	if err != nil {
-		log.Error("Failed to construct oopspam request", "replyTo", replyTo, "err", err)
-		handleSpamFailure(rw, req, body, replyTo, *oopspamErrorHandler)
-		return
+		return 0, fmt.Errorf("construct request: %w", err)
 	}
 
 	spamReq.Header.Set("Content-Type", "application/json; charset=UTF-8")
@@ -66,22 +78,17 @@ func checkSpam(rw http.ResponseWriter, req *http.Request, body string, replyTo s
 
 	spamRes, err := http.DefaultClient.Do(spamReq)
 	if err != nil {
-		log.Error("Failed to send oopspam request", "replyTo", replyTo, "err", err)
-		handleSpamFailure(rw, req, body, replyTo, *oopspamErrorHandler)
-		return
+		return 0, fmt.Errorf("send request: %w", err)
 	}
+	defer spamRes.Body.Close()
+
 	if spamRes.StatusCode >= 400 {
-		log.Error("Failed to send oopspam request", "replyTo", replyTo, "statusCode", spamRes.StatusCode)
-		handleSpamFailure(rw, req, body, replyTo, *oopspamErrorHandler)
-		return
+		return 0, fmt.Errorf("unexpected status code %d", spamRes.StatusCode)
 	}
 
-	defer spamRes.Body.Close()
-	spamResult := &OopspamResponse{}
+	spamResult := &oopspamResponse{}
 	if err := json.NewDecoder(spamRes.Body).Decode(spamResult); err != nil {
-		log.Error("Failed to unmarshal oopspam response", "replyTo", replyTo, "err", err)
-		handleSpamFailure(rw, req, body, replyTo, *oopspamErrorHandler)
-		return
+		return 0, fmt.Errorf("unmarshal response: %w", err)
 	}
 
 	log.Info(
@@ -93,11 +100,7 @@ func checkSpam(rw http.ResponseWriter, req *http.Request, body string, replyTo s
 		"replyTo",
 		replyTo,
 	)
-	if spamResult.Score >= oopspamThreshold {
-		handleSpamFailure(rw, req, body, replyTo, *oopspamSpamHandler)
-	} else {
-		trySendMail(rw, replyTo, body)
-	}
+	return spamResult.Score, nil
 }
 
 func handleSpamFailure(rw http.ResponseWriter, req *http.Request, body string, replyTo string, handler string) {
