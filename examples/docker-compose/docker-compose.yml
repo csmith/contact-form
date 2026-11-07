@@ -24,6 +24,6 @@ services:
       # E-mail server details. If you don't have your own mail server, services like mailgun
       # and Amazon SES offer generous free tiers with SMTP access.
       CONTACT_SMTP_HOST: "smtp.example.com"
-      CONTACT_SMTP_PORT: "563"
+      CONTACT_SMTP_PORT: "587"
       CONTACT_SMTP_PASS: "myp@ssw0rd"
       CONTACT_SMTP_USER: "me"
