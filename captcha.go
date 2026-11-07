@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/dchest/captcha"
@@ -42,7 +43,11 @@ func writeCaptchaImage(rw http.ResponseWriter, req *http.Request) {
 
 	rw.Header().Set("Cache-Control", "no-cache")
 	rw.Header().Set("Content-Type", "image/png")
-	if err := captcha.WriteImage(rw, captchaId, captcha.StdWidth, captcha.StdHeight); err != nil {
+	if err := captcha.WriteImage(rw, captchaId, captcha.StdWidth, captcha.StdHeight); errors.Is(err, captcha.ErrNotFound) {
+		log.Debug("Client requested image for unknown captcha", "id", captchaId)
+		rw.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
 		hc.captcha = err
 		log.Error("Unable to generate image captcha", "error", err)
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -61,7 +66,11 @@ func writeCaptchaAudio(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Cache-Control", "no-cache")
 	rw.Header().Set("Content-Type", "audio/wav")
 	rw.Header().Set("Content-Disposition", "attachment")
-	if err := captcha.WriteAudio(rw, captchaId, "en"); err != nil {
+	if err := captcha.WriteAudio(rw, captchaId, "en"); errors.Is(err, captcha.ErrNotFound) {
+		log.Debug("Client requested audio for unknown captcha", "id", captchaId)
+		rw.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
 		hc.captcha = err
 		log.Error("Unable to generate audio captcha", "error", err)
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -85,15 +94,18 @@ func handleSolve(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	digits := req.Form.Get("captcha")
-	if !captcha.VerifyString(captchaId, digits) {
+	// Verifying removes the captcha from the store whatever the outcome, so
+	// the session's ID is no longer usable.
+	solved := captcha.VerifyString(captchaId, req.Form.Get("captcha"))
+	sessionManager.Remove(req.Context(), captchaKey)
+	hc.captcha = nil
+
+	if !solved {
 		log.Debug("Client presented incorrect captcha solution", "id", captchaId)
-		hc.captcha = nil
 		redirect(rw, "failure")
 		return
 	}
 
 	log.Debug("Client presented correct captcha solution, sending mail", "id", captchaId)
-	hc.captcha = nil
 	trySendMail(rw, sessionManager.PopString(req.Context(), replyToKey), sessionManager.PopString(req.Context(), bodyKey))
 }
