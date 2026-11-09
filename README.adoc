@@ -130,9 +130,10 @@ passed on with valid data.
 == Health checks
 
 If the `-enable-health-check` flag is present, a healthcheck endpoint will be exposed at `/_health`.
-It responds with `200 OK` when healthy, or `503 Service Unavailable` with the error messages
-in a JSON body if not. Any application error that occurs when sending a mail or generating a
-captcha will result in a failing health check until the same operation succeeds again.
+This implements the https://datatracker.ietf.org/doc/html/draft-inadarei-api-health-check-06[draft-inadarei-api-health-check-06]
+specification, responding with `200 OK` when healthy and `503 Service Unavailable` if not. Any
+application error that occurs when sending a mail or generating a captcha will result in a failing
+health check until the same operation succeeds again.
 
 Note that the health check exposes error messages, which could potentially contain information
 about the configuration of the service or parts of messages being sent. If this is a concern you
