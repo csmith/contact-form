@@ -1,8 +1,13 @@
 # Changelog
 
-## 2.2.2 - 2026-10-31
+## 2.3.0 - 2026-11-12
 
-### Bug fixes
+- Update to Go 1.27.4
+- Correct some example documentation, remove unused fields from templates
+- Form submissions are now limited to 64KiB
+- Fix potential panic when an unparseable form is submitted
+
+## 2.2.2 - 2026-10-31
 
 - Fixed messages allowed by the OOPSpam `allow` policy being sent with the
   message body in the `Reply-to` header and the reply-to address as the body.
@@ -20,8 +25,6 @@
   `gcr.io/distroless/base:nonroot`
 
 ## 2.2.0 - 2025-09-11
-
-### Major changes
 
 - Added support for spam checking via OOPSpam
 
@@ -75,8 +78,6 @@
 - Replaced gorilla/mux with Go's built in http.ServeMux
 
 ## 1.0.1 - 2023-02-13
-
-### Other changes
 
 - Minor dependency updates
 
