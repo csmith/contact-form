@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"html/template"
@@ -16,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	xhttp "chameth.com/x/http"
 	"filippo.io/csrf"
 	"github.com/alexedwards/scs/boltstore"
 	"github.com/alexedwards/scs/v2"
@@ -159,23 +159,14 @@ func main() {
 		Handler: sessionManager.LoadAndSave(protection.Handler(r)),
 	}
 
-	go func() {
-		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			log.Error("Unable to listen on port", "port", *port, "error", err)
-		}
-		log.Info("Contact form server stopped")
-	}()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-	<-c
-
-	shutdownCtx, shutdownRelease := context.WithTimeout(context.Background(), 10*time.Second)
-	defer shutdownRelease()
-
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Error("Failed to shut down HTTP server", "error", err)
+	if err := xhttp.ListenAndServe(ctx, server); err != nil {
+		log.Error("HTTP server failed", "port", *port, "error", err)
+		os.Exit(1)
 	}
+	log.Info("Contact form server stopped")
 }
 
 func sendMail(replyTo, message string) bool {
